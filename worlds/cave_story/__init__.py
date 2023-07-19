@@ -1,11 +1,10 @@
-import settings
 from typing import Dict, Any, Optional
 
-from BaseClasses import Region, Location, Entrance, Item, RegionType, ItemClassification, Tutorial
+from BaseClasses import Region, Location, Entrance, Item, ItemClassification, Tutorial
 from worlds.AutoWorld import WebWorld, World
 from .Options import cave_story_options
-from .Items import CaveStoryItem, ALL_ITEMS
-from .Locations import CaveStoryLocation, LOCATIONS, EVENTS
+from .Items import CaveStoryItem, ALL_ITEMS, DUPES
+from .Locations import CaveStoryLocation, ALL_LOCATIONS
 from .Regions import REGIONS, REGION_CONNECTIONS, CaveStoryRegion
 
 base_id = 0xD00_000
@@ -40,12 +39,8 @@ class MyGameWorld(World):
     option_definitions = cave_story_options
     game = "Cave Story"
     topology_present = True
-    item_name_to_id = {name: item_id for (name, _, item_id) in ALL_ITEMS.values}
-    location_name_to_id = {name: id for
-                           id, name in enumerate([
-                               *LOCATIONS,
-                               *EVENTS
-                               ], base_id)}
+    item_name_to_id = {item_data.name: item_data.item_id for item_data in ALL_ITEMS.values()}
+    location_name_to_id = ALL_LOCATIONS
     data_version = 0
     required_client_version = (0, 4, 1)
     required_server_version = (0, 4, 1)
@@ -54,17 +49,23 @@ class MyGameWorld(World):
 
     def generate_early(self) -> None:
         # read player settings to world instance
-        self.dificulty = self.multiworld.dificulty[self.player].value
+        pass
+        # self.dificulty = self.multiworld.dificulty[self.player].value
 
     def create_regions(self) -> None:
         for region in [CaveStoryRegion(reg_name, self) for reg_name in REGIONS]:
+            if region.name in REGIONS:
+                region.add_locations({k: ALL_LOCATIONS[k] for k in REGIONS[region.name] if ALL_LOCATIONS[k] in ALL_LOCATIONS.values()}, CaveStoryLocation)
             if region.name in REGION_CONNECTIONS:
                 region.add_exits(REGION_CONNECTIONS[region.name])
 
     def create_items(self) -> None:
         # Exclude preselected items if it becomes a feature. Must be replaced with junk items
-        for item_data in ALL_ITEMS.values:
-            self.multiworld.itempool.append(CaveStoryItem(**item_data, self.player))
+        for item_data in ALL_ITEMS.values():
+            self.multiworld.itempool.append(CaveStoryItem(*vars(item_data).values(), self.player))
+        for item, count in DUPES.items():
+            for _i in range(count):
+                self.multiworld.itempool.append(CaveStoryItem(*vars(ALL_ITEMS[item]).values(), self.player))
     
     def set_rules(self) -> None:
         pass
@@ -75,4 +76,4 @@ class MyGameWorld(World):
     # Unorder methods:
 
     def create_item(self, item: str):
-        return CaveStoryItem(**ALL_ITEMS[str], self.player)
+        return CaveStoryItem(*vars(ALL_ITEMS[item]).values(), self.player)

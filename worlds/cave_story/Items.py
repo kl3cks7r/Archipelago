@@ -1,15 +1,32 @@
 from typing import Dict, Optional, NamedTuple
 
 from BaseClasses import Item, ItemClassification
-from . import base_id
 
-class CaveStoryData(NamedTuple):
+base_id = 0xD00_000
+
+class CaveStoryData:
     name: str
     classification: ItemClassification
     item_id: Optional[int]
+    _cnt: int
     def __init__(self, name: str, classification: ItemClassification,
                  item_id: Optional[int]):
-        self = {name, classification, item_id}
+        self.name = name
+        self.classification = classification
+        self.item_id = item_id
+    # def __iter__(self):
+    #     self.cnt = 0
+    #     return self
+    # def __next__(self):
+    #     self.cnt += 1
+    #     if self.cnt == 1:
+    #         return self.name
+    #     if self.cnt == 2:
+    #         return self.classification
+    #     if self.cnt == 3:
+    #         return self.item_id
+    #     if self.cnt == 4:
+    #         raise StopIteration
 
 class CaveStoryItem(Item):
     game = "Cave Story"
@@ -93,6 +110,15 @@ PICKUPS_FILLER = [
     # "Missle Bundle", #+3 Missiles
     # "Energy Refill", #+1 +5 +20
 ]
+
+DUPES = {
+    # "Progressive Missile Launcher": 1,
+    # "Progressive Booster": 1,
+    "+3 HP Life Capsule": 1 #2,
+    # "+4 HP Life Capsule": 1,
+    # "+5 HP Life Capsule": 6,
+    # "+5 Max Missile Ammo": 3
+}
 
 PROGRESSION_ITEMS = [(name, ItemClassification.progression) for name in [
     *WEAPONS_PROGRESSION,

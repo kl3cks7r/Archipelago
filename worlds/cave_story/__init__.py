@@ -12,7 +12,7 @@ base_id = 0xD00_000
 class CaveStoryWeb(WebWorld):
     theme = "stone"
 
-    #bug_report_page
+    bug_report_page = "https://github.com/kl3cks7r/Cave-Story-Archipelago/issues"
 
     tut_en = Tutorial(
         "Multiworld Setup Tutorial",

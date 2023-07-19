@@ -5,7 +5,7 @@ from worlds.AutoWorld import WebWorld, World
 from .Options import cave_story_options
 from .Items import CaveStoryItem, ALL_ITEMS, DUPES
 from .Locations import CaveStoryLocation, ALL_LOCATIONS
-from .Regions import REGIONS, REGION_CONNECTIONS, CaveStoryRegion
+from .Regions import REGION_LOCATIONS, REGION_CONNECTIONS, CaveStoryRegion
 
 base_id = 0xD00_000
 
@@ -53,9 +53,9 @@ class MyGameWorld(World):
         # self.dificulty = self.multiworld.dificulty[self.player].value
 
     def create_regions(self) -> None:
-        for region in [CaveStoryRegion(reg_name, self) for reg_name in REGIONS]:
-            if region.name in REGIONS:
-                region.add_locations({k: ALL_LOCATIONS[k] for k in REGIONS[region.name] if ALL_LOCATIONS[k] in ALL_LOCATIONS.values()}, CaveStoryLocation)
+        for region in [CaveStoryRegion(reg_name, self) for reg_name in REGION_LOCATIONS]:
+            if region.name in REGION_LOCATIONS:
+                region.add_locations({k: ALL_LOCATIONS[k] for k in REGION_LOCATIONS[region.name] if ALL_LOCATIONS[k] in ALL_LOCATIONS.values()}, CaveStoryLocation)
             if region.name in REGION_CONNECTIONS:
                 region.add_exits(REGION_CONNECTIONS[region.name])
 

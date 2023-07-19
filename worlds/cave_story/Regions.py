@@ -2,7 +2,7 @@ from typing import Dict, List
 
 from BaseClasses import Region
 
-REGIONS: Dict[str, List[str]] = {
+REGION_LOCATIONS: Dict[str, List[str]] = {
     "Menu": [],
     "Start Point": [],
     "First Cave": ["First Cave Pickup"],

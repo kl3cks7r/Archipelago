@@ -14,19 +14,6 @@ class CaveStoryData:
         self.name = name
         self.classification = classification
         self.item_id = item_id
-    # def __iter__(self):
-    #     self.cnt = 0
-    #     return self
-    # def __next__(self):
-    #     self.cnt += 1
-    #     if self.cnt == 1:
-    #         return self.name
-    #     if self.cnt == 2:
-    #         return self.classification
-    #     if self.cnt == 3:
-    #         return self.item_id
-    #     if self.cnt == 4:
-    #         raise StopIteration
 
 class CaveStoryItem(Item):
     game = "Cave Story"
@@ -98,7 +85,7 @@ INV_FILLER = [
 PICKUPS_PROGRESSION = []
 
 PICKUPS_USEFUL = [
-    "+3 HP Life Capsule", #3
+    "+3 Life Capsule", #3
     # "+4 HP Life Capsule", #2
     # "+5 HP Life Capsule", #7
     # "+5 Max Missile Ammo" #4
@@ -114,7 +101,7 @@ PICKUPS_FILLER = [
 DUPES = {
     # "Progressive Missile Launcher": 1,
     # "Progressive Booster": 1,
-    "+3 HP Life Capsule": 1 #2,
+    "+3 Life Capsule": 1 #2,
     # "+4 HP Life Capsule": 1,
     # "+5 HP Life Capsule": 6,
     # "+5 Max Missile Ammo": 3

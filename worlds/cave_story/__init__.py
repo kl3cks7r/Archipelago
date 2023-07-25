@@ -42,8 +42,8 @@ class MyGameWorld(World):
     item_name_to_id = {item_data.name: item_data.item_id for item_data in ALL_ITEMS.values()}
     location_name_to_id = ALL_LOCATIONS
     data_version = 0
-    required_client_version = (0, 4, 1)
-    required_server_version = (0, 4, 1)
+    # required_client_version = (0, 4, 1)
+    # required_server_version = (0, 4, 1)
     web = CaveStoryWeb()
 
 

@@ -1,11 +1,12 @@
-from typing import Dict, Any, Optional
+from functools import partial
 
-from BaseClasses import Region, Location, Entrance, Item, ItemClassification, Tutorial
+from BaseClasses import Tutorial
 from worlds.AutoWorld import WebWorld, World
 from .Options import cave_story_options
 from .Items import CaveStoryItem, ALL_ITEMS, DUPES
 from .Locations import CaveStoryLocation, ALL_LOCATIONS
-from .Regions import REGION_LOCATIONS, REGION_CONNECTIONS, CaveStoryRegion
+from .Regions import CaveStoryRegion, REGION_LOCATIONS, REGION_CONNECTIONS
+from .Rules import REGION_RULES, LOCATION_RULES
 
 base_id = 0xD00_000
 
@@ -26,7 +27,7 @@ class CaveStoryWeb(WebWorld):
     tutorials = [tut_en]
 
 
-class MyGameWorld(World):
+class CaveStoryWorld(World):
     """
     You wake up in a dark cave with no memory of who you are, where you came from
     or why you're in such a place. Uncovering Mimiga Village you discover that the
@@ -68,7 +69,13 @@ class MyGameWorld(World):
                 self.multiworld.itempool.append(CaveStoryItem(*vars(ALL_ITEMS[item]).values(), self.player))
     
     def set_rules(self) -> None:
-        pass
+        for region in self.multiworld.get_regions(self.player):
+            if region.name in REGION_RULES:
+                for entrance in region.entrances:
+                    entrance.access_rule = partial(REGION_RULES[region.name], player=self.player)
+            for loc in region.locations:
+                if loc.name in LOCATION_RULES:
+                    loc.access_rule = partial(LOCATION_RULES[loc.name], player=self.player)
 
     def generate_basic(self) -> None:
         pass

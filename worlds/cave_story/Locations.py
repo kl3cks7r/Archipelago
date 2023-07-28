@@ -21,7 +21,7 @@ class CaveStoryLocation(Location):
         if loc_id is None:
             self.place_locked_item(CaveStoryItem(name, ItemClassification.progression, None, parent.player))
 
-ALL_LOCATIONS: Dict[str, int] = {
+ALL_LOCATIONS: Dict[str, Optional[int]] = {
     "Egg Corridor - Basil" : base_id+101,
     "Egg Corridor - Outside Abode" : base_id+102,
     "Egg Corridor - Egg 06" : base_id+140,
@@ -48,4 +48,5 @@ ALL_LOCATIONS: Dict[str, int] = {
     "Sacred Ground - B1 Ledge" : base_id+1530,
     "First Cave - Hermit Gunsmith" : base_id+1640,
     "Outer Wall - Clock Room" : base_id+1700,
+    "Victory" : None
 }

@@ -76,6 +76,7 @@ class CaveStoryWorld(World):
             for loc in region.locations:
                 if loc.name in LOCATION_RULES:
                     loc.access_rule = partial(LOCATION_RULES[loc.name], player=self.player)
+        self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
 
     def generate_basic(self) -> None:
         pass

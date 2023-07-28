@@ -70,7 +70,7 @@ ALL_ITEMS: Dict[str, CaveStoryItemData] = {
     "Polar Star": CaveStoryItemData("Polar Star", ItemClassification.progression, base_id+102),
     #"Fireball": CaveStoryItemData("Fireball", ItemClassification.progression, base_id+103),
     #"Machine Gun": CaveStoryItemData("Machine Gun", ItemClassification.useful, base_id+104),
-    "Progressive Missile Launcher": CaveStoryItemData("Progressive Missile Launcher", ItemClassification.useful, base_id+105),
+    "Progressive Missile Launcher": CaveStoryItemData("Progressive Missile Launcher", ItemClassification.progression, base_id+105),
     # Unused
     #"Bubbler": CaveStoryItemData("Bubbler", ItemClassification.useful, base_id+107),
     # Unused

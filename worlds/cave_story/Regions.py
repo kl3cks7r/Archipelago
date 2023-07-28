@@ -17,7 +17,7 @@ REGION_LOCATIONS: Dict[str, List[str]] = {
     "Ruined Egg Corridor": ["Ruined Egg Corridor - Behind Dragon", "Ruined Egg Corridor - Observation Room"],
     "Outer Wall": ["Outer Wall - Clock Room"],
     "Plantation": ["Plantation - Stumpy Horde"],
-    "Sacred Grounds": ["Sacred Ground - B1 Ledge"],
+    "Sacred Grounds": ["Sacred Ground - B1 Ledge", "Victory"],
 }
 
 REGION_CONNECTIONS: Dict[str, List[str]] = {

@@ -1,30 +1,28 @@
 from functools import partial
 
-from BaseClasses import Tutorial
+from BaseClasses import Region, Tutorial
 from worlds.AutoWorld import WebWorld, World
 from .Options import cave_story_options
-from .Items import CaveStoryItem, ALL_ITEMS, DUPES
+from .Items import CaveStoryItem, ALL_ITEMS
 from .Locations import CaveStoryLocation, ALL_LOCATIONS
-from .Regions import CaveStoryRegion, REGION_LOCATIONS, REGION_CONNECTIONS
-from .Rules import REGION_RULES, LOCATION_RULES
+from .RegionsRules import REGIONS
 
 base_id = 0xD00_000
 
+
 class CaveStoryWeb(WebWorld):
+    tutorials = [
+        Tutorial(
+            "Multiworld Setup Tutorial",
+            "A guide to setting up the Cave Story randomizer on your computer.",
+            "English",
+            "setup_en.md",
+            "setup/en",
+            ["kl3cks7r"],
+        )
+    ]
     theme = "stone"
-
     bug_report_page = "https://github.com/kl3cks7r/Cave-Story-Archipelago/issues"
-
-    tut_en = Tutorial(
-        "Multiworld Setup Tutorial",
-        "A guide to setting up the Cave Story randomizer on your computer.",
-        "English",
-        "setup_en.md",
-        "setup/en",
-        ["kl3cks7r"],
-    )
-
-    tutorials = [tut_en]
 
 
 class CaveStoryWorld(World):
@@ -40,13 +38,13 @@ class CaveStoryWorld(World):
     option_definitions = cave_story_options
     game = "Cave Story"
     topology_present = True
-    item_name_to_id = {item_data.name: item_data.item_id for item_data in ALL_ITEMS.values()}
+    item_name_to_id = {
+        item_data.name: item_data.item_id for item_data in ALL_ITEMS.values()}
     location_name_to_id = ALL_LOCATIONS
     data_version = 0
     # required_client_version = (0, 4, 1)
     # required_server_version = (0, 4, 1)
     web = CaveStoryWeb()
-
 
     def generate_early(self) -> None:
         # read player settings to world instance
@@ -54,29 +52,30 @@ class CaveStoryWorld(World):
         # self.dificulty = self.multiworld.dificulty[self.player].value
 
     def create_regions(self) -> None:
-        for region in [CaveStoryRegion(reg_name, self) for reg_name in REGION_LOCATIONS]:
-            if region.name in REGION_LOCATIONS:
-                region.add_locations({k: ALL_LOCATIONS[k] for k in REGION_LOCATIONS[region.name] if ALL_LOCATIONS[k] in ALL_LOCATIONS.values()}, CaveStoryLocation)
-            if region.name in REGION_CONNECTIONS:
-                region.add_exits(REGION_CONNECTIONS[region.name])
+        menu = Region("Menu", self.player, self.multiworld)
+        menu.connect("Start Point")
+        self.multiworld.regions.append(menu)
+        for region_data in REGIONS:
+            region = Region(region_data.name, self.player, self.multiworld)
+            for exits in region_data.exits:
+                region.add_exits(exits.keys(),exits)
+            for locations in region_data.locations:
+                # for loc in region.locations:
+                #     if loc.name in LOCATION_RULES:
+                #         loc.access_rule = partial(LOCATION_RULES[loc.name], player=self.player)
+                region.add_locations({locations[0]:ALL_LOCATIONS[locations[0]]},CaveStoryLocation)
+            self.multiworld.regions.append(region)
 
     def create_items(self) -> None:
         # Exclude preselected items if it becomes a feature. Must be replaced with junk items
-        for item_data in ALL_ITEMS.values():
-            self.multiworld.itempool.append(CaveStoryItem(*vars(item_data).values(), self.player))
-        for item, count in DUPES.items():
-            for _i in range(count):
-                self.multiworld.itempool.append(CaveStoryItem(*vars(ALL_ITEMS[item]).values(), self.player))
-    
-    def set_rules(self) -> None:
-        for region in self.multiworld.get_regions(self.player):
-            if region.name in REGION_RULES:
-                for entrance in region.entrances:
-                    entrance.access_rule = partial(REGION_RULES[region.name], player=self.player)
-            for loc in region.locations:
-                if loc.name in LOCATION_RULES:
-                    loc.access_rule = partial(LOCATION_RULES[loc.name], player=self.player)
-        self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
+        for (item_name, item_data) in ALL_ITEMS.items():
+            for _i in range(item_data.cnt):
+                self.multiworld.itempool.append(CaveStoryItem(
+                    item_name, item_data.classification, item_data.item_id, self.player))
+
+    def set_rules(self) -> None:        
+        self.multiworld.completion_condition[self.player] = lambda state: state.has(
+            "Victory", self.player)
 
     def generate_basic(self) -> None:
         pass

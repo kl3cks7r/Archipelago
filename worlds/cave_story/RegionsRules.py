@@ -45,15 +45,19 @@ def reset_iframes(state: CollectionState, player: int):
 
 
 def traverse_labyrinth_w(state: CollectionState, player: int):
-    return False
+    return has_weapon(state, player)
 
+# RegionData("Menu",[("Start Point - Save Point", lambda state, player: True),], []),
 
 REGIONS: List[RegionData] = [
+    RegionData("Menu",[("Start Point - Save Point", lambda state, player: True),], []),
+
     RegionData(
         "Egg Corridor - Door to Cthulhu's Abode (Lower)",
         [
             # Regions
-            ("Cthulhu's Abode - Door to Egg Corridor (Lower)", lambda state, player: True),
+            ("Cthulhu's Abode - Door to Egg Corridor (Lower)",
+             lambda state, player: True),
             ("Egg Corridor - Outside Cthulhu's Abode", lambda state, player: True)
         ],
         [
@@ -65,7 +69,8 @@ REGIONS: List[RegionData] = [
         "Egg Corridor - Door to Cthulhu's Abode (Upper)",
         [
             # Regions
-            ("Cthulhu's Abode - Door to Egg Corridor (Upper)", lambda state, player: True),
+            ("Cthulhu's Abode - Door to Egg Corridor (Upper)",
+             lambda state, player: True),
             ("Egg Corridor - Outside Cthulhu's Abode", lambda state, player: True)
         ],
         [
@@ -78,24 +83,30 @@ REGIONS: List[RegionData] = [
         "Egg Corridor - Teleporter to Arthur's House",
         [
             # Regions
-            ("Arthur's House - Teleporter to Egg Corridor", lambda state, player: True),
-            ("Egg Corridor - Outside Cthulhu's Abode", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1")))
+            ("Arthur's House - Teleporter to Egg Corridor",
+             lambda state, player: True),
+            ("Egg Corridor - Outside Cthulhu's Abode",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
             ("Egg Corridor - Basil Spot", lambda state, player: True),
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
         "Egg Corridor - Outside Cthulhu's Abode",
         [
             # Regions
-            ("Egg Corridor - Door to Cthulhu's Abode (Lower)", lambda state, player: True),
-            ("Egg Corridor - Door to Cthulhu's Abode (Upper)", lambda state, player: has_flight(state, player) or (state.has("tricks;Dboost;1") and state.has("damage;Damage;2"))),
-            ("Egg Corridor - Teleporter to Arthur's House", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1"))),
-            ("Egg Corridor - Outside Egg Observation Room", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1")))
+            ("Egg Corridor - Door to Cthulhu's Abode (Lower)",
+             lambda state, player: True),
+            ("Egg Corridor - Door to Cthulhu's Abode (Upper)",
+             lambda state, player: has_flight(state, player)),
+            ("Egg Corridor - Teleporter to Arthur's House",
+             lambda state, player: has_weapon(state, player)),
+            ("Egg Corridor - Outside Egg Observation Room",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -106,11 +117,14 @@ REGIONS: List[RegionData] = [
         "Egg Corridor - Outside Egg Observation Room",
         [
             # Regions
-            ("Egg Corridor - Outside Cthulhu's Abode", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1"))),
+            ("Egg Corridor - Outside Cthulhu's Abode",
+             lambda state, player: has_weapon(state, player)),
             ("Egg Corridor - H/V Trigger to Egg No. 06", lambda state, player: True),
-            ("Egg Corridor - Door to Egg Observation Room", lambda state, player: True),
+            ("Egg Corridor - Door to Egg Observation Room",
+             lambda state, player: True),
             ("Egg Corridor - H/V Trigger to Egg No. 01", lambda state, player: True),
-            ("Egg Corridor - Outside Egg No. 00", lambda state, player: True)
+            ("Egg Corridor - Outside Egg No. 00", lambda state,
+             player: state.has("Lowered Egg Corridor Barrier", player, 1))
         ],
         [
             # Locations
@@ -133,7 +147,8 @@ REGIONS: List[RegionData] = [
         "Egg Corridor - Door to Egg Observation Room",
         [
             # Regions
-            ("Egg Observation Room - Door to Egg Corridor", lambda state, player: True),
+            ("Egg Observation Room - Door to Egg Corridor",
+             lambda state, player: True),
             ("Egg Corridor - Outside Egg Observation Room", lambda state, player: True)
         ],
         [
@@ -157,13 +172,15 @@ REGIONS: List[RegionData] = [
         "Egg Corridor - Outside Egg No. 00",
         [
             # Regions
-            ("Egg Corridor - Outside Egg Observation Room", lambda state, player: True),
-            ("Egg Corridor - Door to Egg No. 00", lambda state, player: True)
+            ("Egg Corridor - Outside Egg Observation Room", lambda state,
+             player: state.has("Lowered Egg Corridor Barrier", player, 1)),
+            ("Egg Corridor - Door to Egg No. 00", lambda state,
+             player: state.has("Defeated Igor", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Igor", lambda state, player: can_kill_bosses(state, player) or (state.has("items;supers;1") and state.has("tricks;BossMissiles;1") and state.has("items;missile;8")) or (state.has("items;missiles;1") and state.has("items;missile;18") and state.has("tricks;BossMissiles;2")))
+            ("Defeated Igor", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -171,13 +188,14 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Egg No. 00 - Door to Egg Corridor", lambda state, player: True),
-            ("Egg Corridor - Outside Egg No. 00", lambda state, player: True),
+            ("Egg Corridor - Outside Egg No. 00", lambda state,
+             player: state.has("Defeated Igor", player, 1)),
             ("Egg Corridor - Door to Side Room", lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Igor", lambda state, player: True)
+            ("Defeated Igor", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -196,8 +214,10 @@ REGIONS: List[RegionData] = [
         "Cthulhu's Abode - Door to Egg Corridor (Lower)",
         [
             # Regions
-            ("Egg Corridor - Door to Cthulhu's Abode (Lower)", lambda state, player: True),
-            ("Cthulhu's Abode - Door to Egg Corridor (Upper)", lambda state, player: True),
+            ("Egg Corridor - Door to Cthulhu's Abode (Lower)",
+             lambda state, player: True),
+            ("Cthulhu's Abode - Door to Egg Corridor (Upper)",
+             lambda state, player: can_break_blocks(state, player)),
             ("Cthulhu's Abode - Save Point", lambda state, player: True)
         ],
         [
@@ -209,8 +229,10 @@ REGIONS: List[RegionData] = [
         "Cthulhu's Abode - Door to Egg Corridor (Upper)",
         [
             # Regions
-            ("Egg Corridor - Door to Cthulhu's Abode (Upper)", lambda state, player: True),
-            ("Cthulhu's Abode - Door to Egg Corridor (Lower)", lambda state, player: True)
+            ("Egg Corridor - Door to Cthulhu's Abode (Upper)",
+             lambda state, player: True),
+            ("Cthulhu's Abode - Door to Egg Corridor (Lower)",
+             lambda state, player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -221,7 +243,8 @@ REGIONS: List[RegionData] = [
         "Cthulhu's Abode - Save Point",
         [
             # Regions
-            ("Cthulhu's Abode - Door to Egg Corridor (Lower)", lambda state, player: True)
+            ("Cthulhu's Abode - Door to Egg Corridor (Lower)",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -248,7 +271,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Egg Observation Room - Egg Observation Room Chest", lambda state, player: True),
+            ("Egg Observation Room - Egg Observation Room Chest",
+             lambda state, player: True),
             # Events
         ]
     ),
@@ -261,7 +285,8 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             # Events
-            ("Lowered Egg Corridor Barrier", lambda state, player: True)
+            ("Lowered Egg Corridor Barrier", lambda state,
+             player: state.has("ID Card", player, 1))
         ]
     ),
     RegionData(
@@ -328,7 +353,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Chaco's House - Door to Grasstown", lambda state, player: True),
-            ("Grasstown - West Side", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1") and has_flight(state, player)) or state.has("tricks;pacifist;2"))
+            ("Grasstown - West Side", lambda state,
+             player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -423,41 +449,54 @@ REGIONS: List[RegionData] = [
         "Grasstown - West Side",
         [
             # Regions
-            ("Grasstown - Door to Santa's House", lambda state, player: True),
-            ("Grasstown - Door to Chaco's House", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1") and has_flight(state, player)) or state.has("tricks;pacifist;2")),
-            ("Grasstown - Area Centre", lambda state, player: has_flight(state, player) or state.has("events;eventFans;1") or (state.has("tricks;IframeReset;1") and ((state.has("tricks;Dboost;1") and state.has("damage;Damage;6")) or (state.has("tricks;Dboost;2") and state.has("damage;Damage;4")) or (state.has("tricks;Dboost;3") and state.has("damage;Damage;2") and has_weapon(state, player))) and reset_iframes(state, player) and (has_weapon(state, player) or (state.has("tricks;pacifist;1") and state.has("damage;Damage;5")) or state.has("tricks;pacifist;2")))),
+            ("Grasstown - Door to Santa's House", lambda state,
+             player: state.has("Returned Santa's Key", player, 1)),
+            ("Grasstown - Door to Chaco's House",
+             lambda state, player: has_weapon(state, player)),
+            ("Grasstown - Area Centre", lambda state, player: has_flight(state,
+             player) or state.has("Activated Fans", player, 1)),
             ("Grasstown - Teleporter to Arthur's House", lambda state, player: True)
         ],
         [
             # Locations
-            ("Grasstown - West Grasstown Floor", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1"))),
-            ("Grasstown - West Grasstown Ceiling", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1"))),
-            ("Grasstown - Kulala", lambda state, player: has_weapon(state, player) and state.has("events;eventJellies;1")),
+            ("Grasstown - West Grasstown Floor",
+             lambda state, player: has_weapon(state, player)),
+            ("Grasstown - West Grasstown Ceiling",
+             lambda state, player: has_weapon(state, player)),
+            ("Grasstown - Kulala", lambda state, player: has_weapon(state,
+             player) and state.has("Summoned Jellies", player, 1)),
             # Events
-            ("Return Santa's Key", lambda state, player: True),
-            ("Level MG", lambda state, player: True)
+            ("Return Santa's Key", lambda state,
+             player: state.has("Santa's Key", player, 1)),
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
         "Grasstown - East Side",
         [
             # Regions
-            ("Grasstown - Door to Power Room", lambda state, player: True),
+            ("Grasstown - Door to Power Room", lambda state,
+             player: state.has("Rusty Key", player, 1)),
             ("Grasstown - Door to Save Point", lambda state, player: True),
-            ("Grasstown - Door to Grasstown Hut", lambda state, player: has_flight(state, player) or state.has("events;eventFans;1") or (state.has("tricks;Dboost;2") and state.has("tricks;IframeReset;1") and state.has("damage;Damage;4") and reset_iframes(state, player))),
-            ("Grasstown - Door to Shelter", lambda state, player: True),
+            ("Grasstown - Door to Grasstown Hut", lambda state,
+             player: has_flight(state, player) or state.has("Activated Fans", player, 1)),
+            ("Grasstown - Door to Shelter", lambda state,
+             player: state.has("Saved Kazuma", player, 1)),
             ("Grasstown - Door to Execution Chamber", lambda state, player: True),
-            ("Grasstown - Door to Gum", lambda state, player: state.has("items;gumKey;1") and (has_flight(state, player) or state.has("events;eventFans;1"))),
-            ("Grasstown - Area Centre", lambda state, player: (state.has("events;eventFans;1") or has_flight(state, player) or (remove_points_of_no_return(state, player) and state.has("events;eventFireplace;1")) or ((state.has("tricks;GravHop;5")) or (state.has("tricks;Dboost;3") and state.has("damage;Damage;2")) or (state.has("tricks;Dboost;2") and state.has("damage;Damage;3")))) and (has_weapon(state, player) or (state.has("tricks;pacifist;2") and ((state.has("tricks;Dboost;1") and state.has("damage;Damage;3")) or has_flight(state, player))) or (state.has("tricks;pacifist;3") and state.has("tricks;GravHop;3"))))
+            ("Grasstown - Door to Gum", lambda state, player: state.has("Gum Key", player, 1)
+             and (has_flight(state, player) or state.has("Activated Fans", player, 1))),
+            ("Grasstown - Area Centre", lambda state, player: (state.has("Activated Fans", player, 1) or has_flight(state, player)
+             or (remove_points_of_no_return(state, player) and state.has("Entered Grasstown from Fireplace", player, 1))))
         ],
         [
             # Locations
             ("Grasstown - Grasstown East Chest", lambda state, player: True),
             ("Grasstown - Kazuma Crack", lambda state, player: True),
-            ("Grasstown - Kazuma Chest", lambda state, player: True),
+            ("Grasstown - Kazuma Chest", lambda state,
+             player: state.has("Rusty Key", player, 1)),
             # Events
-            ("Saved Kazuma", lambda state, player: True),
-            ("Level MG", lambda state, player: True)
+            ("Saved Kazuma", lambda state, player: state.has("Explosive", player, 1)),
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
@@ -465,7 +504,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Grasstown - West Side", lambda state, player: True),
-            ("Grasstown - East Side", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;2") and (has_flight(state, player) or (state.has("damage;Damage;3") and state.has("tricks;Dboost;1")))) or (state.has("tricks;pacifist;3") and state.has("tricks;GravHop;3")))
+            ("Grasstown - East Side", lambda state,
+             player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -493,8 +533,10 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Santa's House - Santa", lambda state, player: True),
-            ("Santa's House - Santa's Fireplace", lambda state, player: True),
+            ("Santa's House - Santa", lambda state,
+             player: state.has("Returned Santa's Key", player, 1)),
+            ("Santa's House - Santa's Fireplace", lambda state,
+             player: state.has("Jellyfish Juice", player, 1)),
             # Events
         ]
     ),
@@ -526,14 +568,17 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Grasstown - Door to Chaco's House", lambda state, player: True),
-            ("Chaco's House - Exit to Grasstown", lambda state, player: True),
+            ("Chaco's House - Exit to Grasstown", lambda state,
+             player: state.has("Jellyfish Juice", player, 1)),
             ("Chaco's House - Save Point", lambda state, player: True)
         ],
         [
             # Locations
-            ("Chaco's House - Chaco's Bed, where you two Had A Nap", lambda state, player: True),
+            ("Chaco's House - Chaco's Bed, where you two Had A Nap",
+             lambda state, player: state.has("Returned Santa's Key", player, 1)),
             # Events
-            ("Summon Jellies", lambda state, player: True)
+            ("Summon Jellies", lambda state, player: state.has(
+                "Returned Santa's Key", player, 1))
         ]
     ),
     RegionData(
@@ -578,7 +623,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Power Room - MALCO", lambda state, player: state.has("events;eventFans;1") and state.has("items;charcoal;1") and state.has("items;Juice;1") and state.has("items;gumBase;1") and state.has("events;eventBalrog2;1")),
+            ("Power Room - MALCO", lambda state, player: state.has("Activated Fans", player, 1) and state.has("Charcoal", player, 1)
+             and state.has("Jellyfish Juice", player, 1) and state.has("Gum Base", player, 1) and state.has("Defeated Balrog 2", player, 1)),
             # Events
             ("Activated Fans", lambda state, player: True)
         ]
@@ -638,7 +684,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Execution Chamber - Execution Chamber", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNMissiles;1") and state.has("items;missiles;1") and state.has("items;missile;2"))),
+            ("Execution Chamber - Execution Chamber", lambda state,
+             player: can_break_blocks(state, player)),
             # Events
         ]
     ),
@@ -659,7 +706,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Grasstown - Door to Shelter", lambda state, player: True),
-            ("Shelter - Save Point", lambda state, player: True),
+            ("Shelter - Save Point", lambda state,
+             player: state.has("Saved Kazuma", player, 1)),
             ("Shelter - Teleporter to Jail No. 2", lambda state, player: True)
         ],
         [
@@ -684,12 +732,13 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Jail No. 2 - Teleporter to Shelter", lambda state, player: True),
-            ("Shelter - Door to Grasstown", lambda state, player: True)
+            ("Shelter - Door to Grasstown", lambda state,
+             player: state.has("Saved Kazuma", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Saved Kazuma", lambda state, player: True)
+            ("Saved Kazuma", lambda state, player: state.has("Explosive", player, 1))
         ]
     ),
     RegionData(
@@ -735,7 +784,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Arthur's House - Teleporter to Labyrinth B", lambda state, player: True),
-            ("Labyrinth B - Door to Labyrinth W", lambda state, player: has_flight(state, player) or (state.has("events;eventMazeB;1") and remove_points_of_no_return(state, player)))
+            ("Labyrinth B - Door to Labyrinth W", lambda state, player: has_flight(state, player)
+             or (state.has("Entered Labyrinth B from Above", player, 1) and remove_points_of_no_return(state, player)))
         ],
         [
             # Locations
@@ -748,7 +798,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth B - Door to Labyrinth W", lambda state, player: True),
-            ("Labyrinth B - Refill", lambda state, player: True)
+            ("Labyrinth B - Refill", lambda state,
+             player: has_flight(state, player))
         ],
         [
             # Locations
@@ -771,14 +822,18 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth B - Door to Boulder Chamber", lambda state, player: True),
-            ("Boulder Chamber - Door to Labyrinth M", lambda state, player: True),
-            ("Boulder Chamber - Save Point", lambda state, player: True)
+            ("Boulder Chamber - Door to Labyrinth M", lambda state,
+             player: state.has("Defeated Balrog 3", player, 1)),
+            ("Boulder Chamber - Save Point", lambda state,
+             player: state.has("Defeated Balrog 3", player, 1))
         ],
         [
             # Locations
-            ("Boulder Chamber - Boulder Chest", lambda state, player: True),
+            ("Boulder Chamber - Boulder Chest", lambda state,
+             player: state.has("Defeated Balrog 3", player, 1)),
             # Events
-            ("Balrog 3", lambda state, player: state.has("events;eventCureAll;1") and (can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;2") and (state.has("items;missiles;24") or (state.has("items;missiles;15") and state.has("items;supers;1"))))))
+            ("Balrog 3", lambda state, player: state.has(
+                "Delivered Cure-All", player, 1) and can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -809,7 +864,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Boulder Chamber - Door to Labyrinth M", lambda state, player: True),
-            ("Labyrinth M - Door to Dark Place", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;3") and has_flight(state, player)) or state.has("tricks;pacifist;4"))
+            ("Labyrinth M - Door to Dark Place",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -821,8 +877,10 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Dark Place - Door to Labyrinth M", lambda state, player: True),
-            ("Labyrinth M - Door to Boulder Chamber", lambda state, player: state.has("events;eventBalrog3;1") and (has_weapon(state, player) or (state.has("tricks;pacifist;3") and has_flight(state, player)) or state.has("tricks;SNBubbler;4"))),
-            ("Labyrinth M - Teleporter to Labyrinth Shop", lambda state, player: has_weapon(state, player) or state.has("tricks;pacifist;1"))
+            ("Labyrinth M - Door to Boulder Chamber", lambda state,
+             player: state.has("Defeated Balrog 3", player, 1) and (has_weapon(state, player))),
+            ("Labyrinth M - Teleporter to Labyrinth Shop",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -834,12 +892,13 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth Shop - Teleporter to Labyrinth M", lambda state, player: True),
-            ("Labyrinth M - Door to Dark Place", lambda state, player: has_weapon(state, player) or state.has("tricks;pacifist;1"))
+            ("Labyrinth M - Door to Dark Place",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
@@ -847,8 +906,10 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth M - Door to Dark Place", lambda state, player: True),
-            ("Dark Place - Door to Core", lambda state, player: True),
-            ("Dark Place - Exit to Waterway", lambda state, player: True),
+            ("Dark Place - Door to Core", lambda state,
+             player: state.has("Defeated Balrog 3", player, 1)),
+            ("Dark Place - Exit to Waterway", lambda state,
+             player: state.has("Curly's Air Tank", player, 1)),
             ("Dark Place - Save Point", lambda state, player: True)
         ],
         [
@@ -908,7 +969,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Dark Place - Door to Core", lambda state, player: True),
-            ("Core - Inner Room", lambda state, player: state.has("events;eventBalrog3;1") and (can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;1") and (state.has("items;missiles;1") or state.has("items;supers;1")) and state.has("items;missile;2"))))
+            ("Core - Inner Room", lambda state, player: state.has("Defeated Balrog 3",
+             player, 1) and can_kill_bosses(state, player))
         ],
         [
             # Locations
@@ -919,13 +981,14 @@ REGIONS: List[RegionData] = [
         "Core - Inner Room",
         [
             # Regions
-            ("Core - Door to Dark Place", lambda state, player: True)
+            ("Core - Door to Dark Place", lambda state,
+             player: state.has("Defeated Core", player, 1))
         ],
         [
             # Locations
             ("Core - Robot's Arm", lambda state, player: True),
             # Events
-            ("Core", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;4") and state.has("items;missiles;1") and state.has("items;missile;38")) or (state.has("tricks;BossMissiles;3") and state.has("items;supers;1") and state.has("items;missile;16")) or (state.has("tricks;pacifist;2")))
+            ("Core", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -933,7 +996,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Dark Place - Exit to Waterway", lambda state, player: True),
-            ("Waterway - Door to Waterway Cabin", lambda state, player: state.has("items;airTank;1") and (has_weapon(state, player) or state.has("tricks;pacifist;2")))
+            ("Waterway - Door to Waterway Cabin", lambda state,
+             player: state.has("Curly's Air Tank", player, 1) and (has_weapon(state, player)))
         ],
         [
             # Locations
@@ -956,7 +1020,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Waterway Cabin - Door to Waterway", lambda state, player: True),
-            ("Waterway - Exit to Main Artery", lambda state, player: True)
+            ("Waterway - Exit to Main Artery", lambda state,
+             player: state.has("Curly's Air Tank", player, 1))
         ],
         [
             # Locations
@@ -973,7 +1038,8 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             # Events
-            ("Drained Curly", lambda state, player: True)
+            ("Drained Curly", lambda state, player: state.has(
+                "Picked up Curly (Core)", player, 1))
         ]
     ),
     RegionData(
@@ -1004,12 +1070,13 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Waterway - Exit to Main Artery", lambda state, player: True),
-            ("Main Artery - Exit to Reservoir", lambda state, player: True)
+            ("Main Artery - Exit to Reservoir", lambda state,
+             player: state.has("Defeated Ironhead", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Ironhead", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;2") and state.has("items;supers;1") and state.has("items;missile;10")) or (state.has("tricks;BossMissiles;3") and state.has("items;missiles;1") and state.has("items;missile;24")))
+            ("Ironhead", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -1039,14 +1106,18 @@ REGIONS: List[RegionData] = [
         "Labyrinth I - Room Bottom",
         [
             # Regions
-            ("Labyrinth I - Door to Labyrinth H", lambda state, player: True),
-            ("Labyrinth I - Save Point", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;1") and state.has("items;missiles;1") and state.has("items;supers;1") and state.has("items;missile;1")) or state.has("tricks;GravHop;3"))
+            ("Labyrinth I - Door to Labyrinth H", lambda state,
+             player: state.has("Opened Labyrinth I Door", player, 1)),
+            ("Labyrinth I - Save Point", lambda state,
+             player: can_break_blocks(state, player))
         ],
         [
             # Locations
-            ("Labyrinth I - Labyrinth Life Capsule", lambda state, player: has_weapon(state, player) or state.has("tricks;pacifist;3") or (state.has("tricks;pacifist;2") and has_flight(state, player))),
+            ("Labyrinth I - Labyrinth Life Capsule",
+             lambda state, player: has_weapon(state, player)),
             # Events
-            ("Opened Labyrinth I Door", lambda state, player: has_weapon(state, player) or ((state.has("tricks;pacifist;1") and has_flight(state, player))) or state.has("tricks;pacifist;3")),
+            ("Opened Labyrinth I Door", lambda state,
+             player: has_weapon(state, player)),
             ("Use Labyrinth I Teleporter", lambda state, player: True)
         ]
     ),
@@ -1114,7 +1185,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth H - Door to Labyrinth W", lambda state, player: True),
-            ("Labyrinth W - Outside Camp", lambda state, player: True)
+            ("Labyrinth W - Outside Camp", lambda state,
+             player: traverse_labyrinth_w(state, player))
         ],
         [
             # Locations
@@ -1126,7 +1198,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth Shop - Door to Labyrinth W", lambda state, player: True),
-            ("Labyrinth W - Outside Camp", lambda state, player: True)
+            ("Labyrinth W - Outside Camp", lambda state,
+             player: traverse_labyrinth_w(state, player))
         ],
         [
             # Locations
@@ -1137,17 +1210,22 @@ REGIONS: List[RegionData] = [
         "Labyrinth W - Outside Camp",
         [
             # Regions
-            ("Labyrinth W - Door to Labyrinth H", lambda state, player: True),
-            ("Labyrinth W - Door to Labyrinth Shop", lambda state, player: True),
-            ("Labyrinth W - Door to Camp (Lower)", lambda state, player: True),
-            ("Labyrinth W - Door to Camp (Upper)", lambda state, player: can_break_blocks(state, player) and ((state.has("tricks;Dboost;1") and state.has("damage;Damage;8")) or has_flight(state, player) or (state.has("tricks;Dboost;2") and state.has("damage;Damage;3"))) and traverse_labyrinth_w(state, player)),
-            ("Labyrinth W - Door to Clinic Ruins", lambda state, player: state.has("items;clinicKey;1") and traverse_labyrinth_w(state, player)),
+            ("Labyrinth W - Door to Labyrinth H", lambda state,
+             player: traverse_labyrinth_w(state, player)),
+            ("Labyrinth W - Door to Labyrinth Shop", lambda state,
+             player: traverse_labyrinth_w(state, player)),
+            ("Labyrinth W - Door to Camp (Lower)", lambda state,
+             player: traverse_labyrinth_w(state, player)),
+            ("Labyrinth W - Door to Camp (Upper)", lambda state, player: can_break_blocks(state,
+             player) and has_flight(state, player) and traverse_labyrinth_w(state, player)),
+            ("Labyrinth W - Door to Clinic Ruins", lambda state, player: state.has(
+                "Clinic Key", player, 1) and traverse_labyrinth_w(state, player)),
             ("Labyrinth W - Before Monster X", lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
@@ -1155,7 +1233,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Camp - Door to Labyrinth W (Lower)", lambda state, player: True),
-            ("Labyrinth W - Outside Camp", lambda state, player: True)
+            ("Labyrinth W - Outside Camp", lambda state,
+             player: traverse_labyrinth_w(state, player))
         ],
         [
             # Locations
@@ -1167,7 +1246,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Camp - Door to Labyrinth W (Upper)", lambda state, player: True),
-            ("Labyrinth W - Outside Camp", lambda state, player: can_break_blocks(state, player) and traverse_labyrinth_w(state, player))
+            ("Labyrinth W - Outside Camp", lambda state, player: can_break_blocks(state,
+             player) and traverse_labyrinth_w(state, player))
         ],
         [
             # Locations
@@ -1179,7 +1259,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Clinic Ruins - Door to Labyrinth W", lambda state, player: True),
-            ("Labyrinth W - Outside Camp", lambda state, player: True)
+            ("Labyrinth W - Outside Camp", lambda state,
+             player: traverse_labyrinth_w(state, player))
         ],
         [
             # Locations
@@ -1202,13 +1283,15 @@ REGIONS: List[RegionData] = [
         "Labyrinth W - Before Monster X",
         [
             # Regions
-            ("Labyrinth W - Outside Camp", lambda state, player: True),
-            ("Labyrinth W - Door to Labyrinth B", lambda state, player: True)
+            ("Labyrinth W - Outside Camp", lambda state,
+             player: state.has("Defeated Monster X", player, 1)),
+            ("Labyrinth W - Door to Labyrinth B", lambda state,
+             player: state.has("Defeated Monster X", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Monster X", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;3") and state.has("items;supers;1") and state.has("items;missile;30")) or (state.has("tricks;BossMissiles;4") and state.has("items;missiles;1") and state.has("items;missile;60")))
+            ("Monster X", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -1216,14 +1299,18 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth W - Door to Labyrinth Shop", lambda state, player: True),
-            ("Labyrinth Shop - Teleporter to Labyrinth M", lambda state, player: True),
+            ("Labyrinth Shop - Teleporter to Labyrinth M",
+             lambda state, player: has_flight(state, player)),
             ("Labyrinth Shop - Save Point", lambda state, player: True)
         ],
         [
             # Locations
-            ("Labyrinth Shop - Chaba Chest (Machine Gun)", lambda state, player: True),
-            ("Labyrinth Shop - Chaba Chest (Fireball)", lambda state, player: True),
-            ("Labyrinth Shop - Chaba Chest (Spur)", lambda state, player: True),
+            ("Labyrinth Shop - Chaba Chest (Machine Gun)",
+             lambda state, player: state.has("Machine Gun", player, 1)),
+            ("Labyrinth Shop - Chaba Chest (Fireball)",
+             lambda state, player: state.has("Fireball", player, 1)),
+            ("Labyrinth Shop - Chaba Chest (Spur)",
+             lambda state, player: state.has("Spur", player, 1)),
             # Events
         ]
     ),
@@ -1255,14 +1342,15 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth W - Door to Camp (Lower)", lambda state, player: True),
-            ("Camp - Door to Labyrinth W (Upper)", lambda state, player: True),
+            ("Camp - Door to Labyrinth W (Upper)", lambda state,
+             player: state.has("Start in Camp", player, 1)),
             ("Camp - Save Point", lambda state, player: True)
         ],
         [
             # Locations
             ("Camp - Dr. Gero", lambda state, player: True),
             # Events
-            ("Cure-All", lambda state, player: True)
+            ("Cure-All", lambda state, player: state.has("Cure-All", player, 1))
         ]
     ),
     RegionData(
@@ -1270,7 +1358,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Labyrinth W - Door to Camp (Upper)", lambda state, player: True),
-            ("Camp - Door to Labyrinth W (Lower)", lambda state, player: True)
+            ("Camp - Door to Labyrinth W (Lower)", lambda state,
+             player: state.has("Start in Camp", player, 1))
         ],
         [
             # Locations
@@ -1318,7 +1407,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Plantation - Door to Final Cave", lambda state, player: True),
-            ("Final Cave - Door to Balcony (Pre-Bosses)", lambda state, player: True)
+            ("Final Cave - Door to Balcony (Pre-Bosses)",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -1330,7 +1420,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Balcony (Pre-Bosses) - Door to Final Cave", lambda state, player: True),
-            ("Final Cave - Door to Plantation", lambda state, player: True)
+            ("Final Cave - Door to Plantation",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -1342,7 +1433,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Plantation - Door to Last Cave (Hidden)", lambda state, player: True),
-            ("Last Cave (Hidden) - Before Red Demon", lambda state, player: state.has("items;booster2;1") and has_weapon(state, player))
+            ("Last Cave (Hidden) - Before Red Demon", lambda state,
+             player: state.has("Booster 2.0", player, 1) and has_weapon(state, player))
         ],
         [
             # Locations
@@ -1353,8 +1445,10 @@ REGIONS: List[RegionData] = [
         "Last Cave (Hidden) - Door to Balcony (Pre-Bosses)",
         [
             # Regions
-            ("Balcony (Pre-Bosses) - Door to Last Cave (Hidden)", lambda state, player: True),
-            ("Last Cave (Hidden) - Before Red Demon", lambda state, player: state.has("items;booster2;1") and has_weapon(state, player))
+            ("Balcony (Pre-Bosses) - Door to Last Cave (Hidden)",
+             lambda state, player: True),
+            ("Last Cave (Hidden) - Before Red Demon", lambda state,
+             player: state.has("Booster 2.0", player, 1) and has_weapon(state, player))
         ],
         [
             # Locations
@@ -1365,20 +1459,23 @@ REGIONS: List[RegionData] = [
         "Last Cave (Hidden) - Before Red Demon",
         [
             # Regions
-            ("Last Cave (Hidden) - Door to Plantation", lambda state, player: True),
-            ("Last Cave (Hidden) - Door to Balcony (Pre-Bosses)", lambda state, player: True)
+            ("Last Cave (Hidden) - Door to Plantation", lambda state,
+             player: state.has("Defeated Red Demon", player, 1)),
+            ("Last Cave (Hidden) - Door to Balcony (Pre-Bosses)",
+             lambda state, player: state.has("Defeated Red Demon", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Red Demon", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;2") and state.has("items;supers;1") and state.has("items;missile;8")) or (state.has("tricks;BossMissiles;3") and state.has("items;missiles;1") and state.has("items;missile;18")))
+            ("Red Demon", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
         "Balcony (Pre-Bosses) - Exit to Throne Room",
         [
             # Regions
-            ("Throne Room - Entrance from Balcony (Pre-Bosses)", lambda state, player: True)
+            ("Throne Room - Entrance from Balcony (Pre-Bosses)",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1390,7 +1487,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Final Cave - Door to Balcony (Pre-Bosses)", lambda state, player: True),
-            ("Balcony (Pre-Bosses) - Door to Prefab Building", lambda state, player: True)
+            ("Balcony (Pre-Bosses) - Door to Prefab Building",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1401,8 +1499,10 @@ REGIONS: List[RegionData] = [
         "Balcony (Pre-Bosses) - Door to Last Cave (Hidden)",
         [
             # Regions
-            ("Last Cave (Hidden) - Door to Balcony (Pre-Bosses)", lambda state, player: True),
-            ("Balcony (Pre-Bosses) - Door to Prefab Building", lambda state, player: True)
+            ("Last Cave (Hidden) - Door to Balcony (Pre-Bosses)",
+             lambda state, player: True),
+            ("Balcony (Pre-Bosses) - Door to Prefab Building",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1413,22 +1513,53 @@ REGIONS: List[RegionData] = [
         "Balcony (Pre-Bosses) - Door to Prefab Building",
         [
             # Regions
-            ("Prefab Building - Door to Balcony (Pre-Bosses)", lambda state, player: True),
-            ("Balcony (Pre-Bosses) - Exit to Throne Room", lambda state, player: True),
-            ("Balcony (Pre-Bosses) - Door to Final Cave", lambda state, player: True),
-            ("Balcony (Pre-Bosses) - Door to Last Cave (Hidden)", lambda state, player: True)
+            ("Prefab Building - Door to Balcony (Pre-Bosses)",
+             lambda state, player: True),
+            ("Balcony (Pre-Bosses) - Exit to Throne Room", lambda state,
+             player: state.has("Lowered Barrier", player, 1)),
+            ("Balcony (Pre-Bosses) - Door to Final Cave", lambda state,
+             player: state.has("Booster 2.0", player, 1)),
+            ("Balcony (Pre-Bosses) - Door to Last Cave (Hidden)",
+             lambda state, player: state.has("Booster 2.0", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Lowered Barrier", lambda state, player: (state.has("events;eventSue;1") and (state.has("misc;normalEnd;1") or (state.has("items;ironBond;1") and state.has("items;booster2;1") and (state.has("misc;bestEnd;1") or (state.has("events;eventBalfrog;1") and state.has("events;eventBalrog;1") and state.has("events;eventBalrog2;1") and state.has("events;eventBalrog3;1") and state.has("events;eventFightCurly;1") and state.has("events;eventIgor;1") and state.has("events;eventIronhead;1") and state.has("events;eventMaPignon;1") and state.has("events;eventMonsterX;1") and state.has("events;eventOmega;1") and state.has("events;eventPuu;1") and state.has("events;eventSisters;1") and state.has("events;eventToroko;1") and state.has("events;eventCore;1") and (state.has("misc;allBosses;1") or (state.has("misc;hundo;1") and ()))))))))
+            ("Lowered Barrier", lambda state, player: (
+                state.has("Saved Sue", player, 1) and (
+                    False or (  # Normal Ending
+                        state.has("Iron Bond", player, 1) and
+                        state.has("Booster 2.0", player, 1) and (
+                            False or (  # Best Ending
+                                state.has("Defeated Balfrog", player, 1) and
+                                state.has("Defeated Balrog 1", player, 1) and
+                                state.has("Defeated Balrog 2", player, 1) and
+                                state.has("Defeated Balrog 3", player, 1) and
+                                state.has("Defeated Curly", player, 1) and
+                                state.has("Defeated Igor", player, 1) and
+                                state.has("Defeated Ironhead", player, 1) and
+                                state.has("Defeated Ma Pignon", player, 1) and
+                                state.has("Defeated Monster X", player, 1) and
+                                state.has("Defeated Omega", player, 1) and
+                                state.has("Defeated Puu Black", player, 1) and
+                                state.has("Defeated Sisters", player, 1) and
+                                state.has("Defeated Toroko+", player, 1) and
+                                state.has("Defeated Core", player, 1) and (
+                                    False  # All Bosses
+                                )
+                            )
+                        )
+                    )
+                )
+            ))
         ]
     ),
     RegionData(
         "Prefab Building - Door to Balcony (Pre-Bosses)",
         [
             # Regions
-            ("Balcony (Pre-Bosses) - Door to Prefab Building", lambda state, player: True),
+            ("Balcony (Pre-Bosses) - Door to Prefab Building",
+             lambda state, player: True),
             ("Prefab Building - Save Point/Bed", lambda state, player: True)
         ],
         [
@@ -1440,7 +1571,8 @@ REGIONS: List[RegionData] = [
         "Prefab Building - Save Point/Bed",
         [
             # Regions
-            ("Prefab Building - Door to Balcony (Pre-Bosses)", lambda state, player: True)
+            ("Prefab Building - Door to Balcony (Pre-Bosses)",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1456,14 +1588,15 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             # Events
-            ("Misery", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;3") and state.has("items;supers;1") and state.has("items;missile;13")) or (state.has("tricks;BossMissiles;4") and state.has("items;missiles;1") and state.has("items;missile;31")))
+            ("Misery", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
         "Throne Room - Exit to Balcony (Post-Bosses)",
         [
             # Regions
-            ("Balcony (Post-Bosses) - Entrance from Throne Room", lambda state, player: True)
+            ("Balcony (Post-Bosses) - Entrance from Throne Room",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1474,8 +1607,10 @@ REGIONS: List[RegionData] = [
         "Throne Room - H/V Trigger to The King's Table",
         [
             # Regions
-            ("The King's Table - H/V Trigger to Throne Room", lambda state, player: True),
-            ("Throne Room - Exit to Balcony (Post-Bosses)", lambda state, player: True)
+            ("The King's Table - H/V Trigger to Throne Room",
+             lambda state, player: True),
+            ("Throne Room - Exit to Balcony (Post-Bosses)", lambda state,
+             player: state.has("Defeated Undead Core", player, 1))
         ],
         [
             # Locations
@@ -1486,20 +1621,23 @@ REGIONS: List[RegionData] = [
         "The King's Table - H/V Trigger to Throne Room",
         [
             # Regions
-            ("Throne Room - H/V Trigger to The King's Table", lambda state, player: True)
+            ("Throne Room - H/V Trigger to The King's Table",
+             lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Doctor", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;2") and state.has("items;missiles;1") and state.has("items;missile;36")) or (state.has("tricks;BossMissiles;3") and state.has("items;supers;1") and state.has("items;missile;16")))
+            ("Doctor", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
         "The King's Table - H/V Trigger to Black Space",
         [
             # Regions
-            ("Black Space - H/V Trigger to The King's Table", lambda state, player: True),
-            ("The King's Table - H/V Trigger to Throne Room", lambda state, player: True)
+            ("Black Space - H/V Trigger to The King's Table",
+             lambda state, player: True),
+            ("The King's Table - H/V Trigger to Throne Room", lambda state,
+             player: state.has("Defeated Undead Core", player, 1))
         ],
         [
             # Locations
@@ -1510,32 +1648,37 @@ REGIONS: List[RegionData] = [
         "Black Space - H/V Trigger to The King's Table",
         [
             # Regions
-            ("The King's Table - H/V Trigger to Black Space", lambda state, player: True)
+            ("The King's Table - H/V Trigger to Black Space",
+             lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Undead Core", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;3") and state.has("items;supers;1") and state.has("items;missile;18")) or (state.has("tricks;BossMissiles;4") and state.has("items;missiles;1") and state.has("items;missile;42")))
+            ("Undead Core", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
         "Balcony (Post-Bosses) - Entrance from Throne Room",
         [
             # Regions
-            ("Throne Room - Exit to Balcony (Post-Bosses)", lambda state, player: True),
-            ("Balcony (Post-Bosses) - Exit to Prefab House", lambda state, player: state.has("items;ironBond;1") and (state.has("misc;bestEnd;1") or state.has("misc;allBosses;1") or state.has("misc;hundo;1") or state.has("misc;entranceRando;1")))
+            ("Throne Room - Exit to Balcony (Post-Bosses)",
+             lambda state, player: True),
+            ("Balcony (Post-Bosses) - Exit to Prefab House",
+             lambda state, player: state.has("Iron Bond", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Normal Ending", lambda state, player: state.has("misc;normalEnd;1") and state.has("events;eventCore2;1"))
+            ("Normal Ending", lambda state, player: state.has(
+                "Defeated Undead Core", player, 1))
         ]
     ),
     RegionData(
         "Balcony (Post-Bosses) - Exit to Prefab House",
         [
             # Regions
-            ("Prefab House - Entrance from Balcony (Post-Bosses)", lambda state, player: True)
+            ("Prefab House - Entrance from Balcony (Post-Bosses)",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1546,8 +1689,10 @@ REGIONS: List[RegionData] = [
         "Balcony (Post-Bosses) - Entrance from Prefab House",
         [
             # Regions
-            ("Prefab House - Exit to Balcony (Post-Bosses)", lambda state, player: True),
-            ("Balcony (Post-Bosses) - Entrance from Throne Room", lambda state, player: True)
+            ("Prefab House - Exit to Balcony (Post-Bosses)",
+             lambda state, player: True),
+            ("Balcony (Post-Bosses) - Entrance from Throne Room",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1558,8 +1703,10 @@ REGIONS: List[RegionData] = [
         "Prefab House - Entrance from Balcony (Post-Bosses)",
         [
             # Regions
-            ("Balcony (Post-Bosses) - Exit to Prefab House", lambda state, player: True),
-            ("Prefab House - Exit to Balcony (Post-Bosses)", lambda state, player: True),
+            ("Balcony (Post-Bosses) - Exit to Prefab House",
+             lambda state, player: True),
+            ("Prefab House - Exit to Balcony (Post-Bosses)",
+             lambda state, player: True),
             ("Prefab House - Exit to Sacred Grounds - B1", lambda state, player: True),
             ("Prefab House - Save Point", lambda state, player: True)
         ],
@@ -1572,7 +1719,8 @@ REGIONS: List[RegionData] = [
         "Prefab House - Exit to Balcony (Post-Bosses)",
         [
             # Regions
-            ("Balcony (Post-Bosses) - Entrance from Prefab House", lambda state, player: True)
+            ("Balcony (Post-Bosses) - Entrance from Prefab House",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1583,7 +1731,8 @@ REGIONS: List[RegionData] = [
         "Prefab House - Exit to Sacred Grounds - B1",
         [
             # Regions
-            ("Sacred Grounds - B1 - Entrance from Prefab House", lambda state, player: True)
+            ("Sacred Grounds - B1 - Entrance from Prefab House",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1594,7 +1743,8 @@ REGIONS: List[RegionData] = [
         "Prefab House - Save Point",
         [
             # Regions
-            ("Prefab House - Entrance from Balcony (Post-Bosses)", lambda state, player: True)
+            ("Prefab House - Entrance from Balcony (Post-Bosses)",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -1609,7 +1759,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Sacred Grounds - B1 - Hell B1 Spot", lambda state, player: True),
+            ("Sacred Grounds - B1 - Hell B1 Spot", lambda state,
+             player: state.has("Booster 2.0", player, 1)),
             # Events
         ]
     ),
@@ -1617,21 +1768,25 @@ REGIONS: List[RegionData] = [
         "Sacred Grounds - B1 - Door to Sacred Grounds - B2",
         [
             # Regions
-            ("Sacred Grounds - B2 - Door to Sacred Grounds - B1", lambda state, player: True)
+            ("Sacred Grounds - B2 - Door to Sacred Grounds - B1",
+             lambda state, player: True)
         ],
         [
             # Locations
-            ("Sacred Grounds - B1 - Hell B1 Spot", lambda state, player: True),
+            ("Sacred Grounds - B1 - Hell B1 Spot", lambda state,
+             player: state.has("Booster 2.0", player, 1)),
             # Events
-            ("Curly", lambda state, player: True)
+            ("Curly", lambda state, player: state.has("Used Ma Pignon", player, 1))
         ]
     ),
     RegionData(
         "Sacred Grounds - B2 - Door to Sacred Grounds - B1",
         [
             # Regions
-            ("Sacred Grounds - B1 - Door to Sacred Grounds - B2", lambda state, player: True),
-            ("Sacred Grounds - B2 - H/V Trigger to Sacred Grounds - B3", lambda state, player: True)
+            ("Sacred Grounds - B1 - Door to Sacred Grounds - B2",
+             lambda state, player: True),
+            ("Sacred Grounds - B2 - H/V Trigger to Sacred Grounds - B3",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -1642,8 +1797,10 @@ REGIONS: List[RegionData] = [
         "Sacred Grounds - B2 - H/V Trigger to Sacred Grounds - B3",
         [
             # Regions
-            ("Sacred Grounds - B3 - H/V Trigger to Sacred Grounds - B2", lambda state, player: True),
-            ("Sacred Grounds - B2 - Door to Sacred Grounds - B1", lambda state, player: True)
+            ("Sacred Grounds - B3 - H/V Trigger to Sacred Grounds - B2",
+             lambda state, player: True),
+            ("Sacred Grounds - B2 - Door to Sacred Grounds - B1",
+             lambda state, player: has_weapon(state, player))
         ],
         [
             # Locations
@@ -1654,13 +1811,16 @@ REGIONS: List[RegionData] = [
         "Sacred Grounds - B3 - H/V Trigger to Sacred Grounds - B2",
         [
             # Regions
-            ("Sacred Grounds - B2 - H/V Trigger to Sacred Grounds - B3", lambda state, player: True)
+            ("Sacred Grounds - B2 - H/V Trigger to Sacred Grounds - B3",
+             lambda state, player: True)
         ],
         [
             # Locations
-            ("Sacred Grounds - B3 - Hell B3 Chest", lambda state, player: (has_flight(state, player) or (state.has("tricks;Dboost;1") and state.has("damage;Damage;10"))) and has_weapon(state, player)),
+            ("Sacred Grounds - B3 - Hell B3 Chest", lambda state,
+             player: has_flight(state, player) and has_weapon(state, player)),
             # Events
-            ("Heavy Press", lambda state, player: can_kill_bosses(state, player) and (has_flight(state, player) or (state.has("tricks;Dboost;1") and state.has("damage;Damage;10"))))
+            ("Heavy Press", lambda state, player: can_kill_bosses(
+                state, player) and has_flight(state, player))
         ]
     ),
     RegionData(
@@ -1707,7 +1867,7 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             # Events
-            ("Best Ending", lambda state, player: (can_kill_bosses(state, player) or (state.has("tricks;pacifist;1") and state.has("events;eventCurly3;1"))) and has_flight(state, player) and (state.has("misc;bestEnd;1") or state.has("misc;allBosses;1") or state.has("misc;hundo;1")))
+            ("Best Ending", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -1762,7 +1922,8 @@ REGIONS: List[RegionData] = [
             # Regions
             ("Start Point - Door to First Cave", lambda state, player: True),
             ("First Cave - Door to Hermit Gunsmith", lambda state, player: True),
-            ("First Cave - Door to Mimiga Village", lambda state, player: can_break_blocks(state, player) and (has_weapon(state, player) or state.has("events;startPoint;1")))
+            ("First Cave - Door to Mimiga Village", lambda state, player: can_break_blocks(state,
+             player) and (has_weapon(state, player) or state.has("Start in Start Point", player, 1)))
         ],
         [
             # Locations
@@ -1787,7 +1948,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Mimiga Village - Door to First Cave", lambda state, player: True),
-            ("First Cave - Door to Start Point", lambda state, player: True)
+            ("First Cave - Door to Start Point", lambda state,
+             player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -1803,7 +1965,8 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             ("Hermit Gunsmith - Hermit Gunsmith Chest", lambda state, player: True),
-            ("Hermit Gunsmith - Tetsuzou", lambda state, player: (state.has("items;polarStar;1") or state.has("items;spur;1")) and state.has("events;eventCore;1")),
+            ("Hermit Gunsmith - Tetsuzou", lambda state, player: (state.has("Polar Star", player, 1)
+             or state.has("Spur", player, 1)) and state.has("Defeated Core", player, 1)),
             # Events
         ]
     ),
@@ -1823,14 +1986,17 @@ REGIONS: List[RegionData] = [
         "Mimiga Village - Room Centre",
         [
             # Regions
-            ("Mimiga Village - Door to First Cave", lambda state, player: True),
+            ("Mimiga Village - Door to First Cave",
+             lambda state, player: has_flight(state, player)),
             ("Mimiga Village - Door to Save Point", lambda state, player: True),
             ("Mimiga Village - Door to Reservoir", lambda state, player: True),
             ("Mimiga Village - Door to Yamashita Farm", lambda state, player: True),
             ("Mimiga Village - Door to Assembly Hall", lambda state, player: True),
-            ("Mimiga Village - Door to Graveyard", lambda state, player: True),
+            ("Mimiga Village - Door to Graveyard", lambda state,
+             player: state.has("Toroko Kidnapped", player, 1)),
             ("Mimiga Village - Door to Shack", lambda state, player: True),
-            ("Mimiga Village - Door to Arthur's House", lambda state, player: True)
+            ("Mimiga Village - Door to Arthur's House", lambda state,
+             player: state.has("Arthur's Key", player, 1))
         ],
         [
             # Locations
@@ -1974,7 +2140,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Mimiga Village - Door to Reservoir", lambda state, player: True),
-            ("Reservoir - Debug Cat to Dark Place", lambda state, player: state.has("misc;entranceRando;1") and state.has("events;eventIronhead;1"))
+            ("Reservoir - Debug Cat to Dark Place", lambda state,
+             player: state.has("Defeated Ironhead", player, 1))
         ],
         [
             # Locations
@@ -2014,7 +2181,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Assembly Hall - Assembly Hall Fireplace", lambda state, player: True),
+            ("Assembly Hall - Assembly Hall Fireplace", lambda state,
+             player: state.has("Jellyfish Juice", player, 1)),
             # Events
         ]
     ),
@@ -2023,7 +2191,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Mimiga Village - Door to Graveyard", lambda state, player: True),
-            ("Graveyard - Door to Storage", lambda state, player: True)
+            ("Graveyard - Door to Storage", lambda state,
+             player: has_flight(state, player))
         ],
         [
             # Locations
@@ -2052,9 +2221,18 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Storage - Storage? Chest", lambda state, player: True),
+            ("Storage - Storage? Chest", lambda state,
+             player: state.has("Saved Curly", player, 1)),
             # Events
-            ("Ma Pignon", lambda state, player: state.has("items;mushBadge;1") and (state.has("items;polarStar;1") or state.has("items;machineGun;1") or state.has("items;bubbler;1") or state.has("items;fireball;1") or state.has("items;spur;1") or state.has("items;snake;1") or state.has("items;nemesis;1")))
+            ("Ma Pignon", lambda state, player: state.has("Mushroom Badge", player, 1) and (
+                state.has("Polar Star", player, 1) or
+                state.has("Machine Gun", player, 1) or
+                state.has("Bubbler", player, 1) or
+                state.has("Fireball", player, 1) or
+                state.has("Spur", player, 1) or
+                state.has("Snake", player, 1) or
+                state.has("Nemesis", player, 1)
+            ))
         ]
     ),
     RegionData(
@@ -2066,9 +2244,12 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             # Events
-            ("Toroko Kidnapped", lambda state, player: state.has("items;locket;1") and has_weapon(state, player)),
-            ("Balrog 1", lambda state, player: state.has("events;eventToroko2;1") and (can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;1") and ((state.has("items;missiles;1") and state.has("items;missile;4")) or (state.has("items;supers;2") and state.has("items;missile;2")))))),
-            ("Level MG", lambda state, player: state.has("items;machineGun;1") and state.has("events;eventBalrog;1"))
+            ("Toroko Kidnapped", lambda state, player: state.has(
+                "Silver Locket", player, 1) and has_weapon(state, player)),
+            ("Balrog 1", lambda state, player: state.has(
+                "Toroko Kidnapped", player, 1) and can_kill_bosses(state, player)),
+            ("Level MG", lambda state, player: state.has("Machine Gun",
+             player, 1) and state.has("Defeated Balrog 1", player, 1))
         ]
     ),
     RegionData(
@@ -2087,19 +2268,23 @@ REGIONS: List[RegionData] = [
         "Arthur's House - Main Teleporter",
         [
             # Regions
-            ("Arthur's House - Door to Mimiga Village", lambda state, player: True),
+            ("Arthur's House - Door to Mimiga Village", lambda state,
+             player: state.has("Arthur's Key", player, 1)),
             ("Arthur's House - Save Point", lambda state, player: True),
-            ("Arthur's House - Teleporter to Egg Corridor", lambda state, player: True),
+            ("Arthur's House - Teleporter to Egg Corridor",
+             lambda state, player: True),
             ("Arthur's House - Teleporter to Grasstown", lambda state, player: True),
             ("Arthur's House - Teleporter to Sand Zone", lambda state, player: True),
             ("Arthur's House - Teleporter to Labyrinth B", lambda state, player: True),
             ("Arthur's House - Teleporter to Teleporter", lambda state, player: True),
-            ("Arthur's House - Teleporter to Egg Corridor?", lambda state, player: state.has("events;eventCore;1") or state.has("events;eventEgg2Teleport;1")),
+            ("Arthur's House - Teleporter to Egg Corridor?", lambda state, player: state.has(
+                "Defeated Core", player, 1) or state.has("Used Egg Corridor? Teleporter", player, 1)),
             ("Arthur's House - Room Spawn", lambda state, player: True)
         ],
         [
             # Locations
-            ("Arthur's House - Professor Booster", lambda state, player: True),
+            ("Arthur's House - Professor Booster", lambda state,
+             player: state.has("Defeated Core", player, 1)),
             # Events
         ]
     ),
@@ -2119,7 +2304,8 @@ REGIONS: List[RegionData] = [
         "Arthur's House - Teleporter to Egg Corridor",
         [
             # Regions
-            ("Egg Corridor - Teleporter to Arthur's House", lambda state, player: True),
+            ("Egg Corridor - Teleporter to Arthur's House",
+             lambda state, player: True),
             ("Arthur's House - Main Teleporter", lambda state, player: True)
         ],
         [
@@ -2179,7 +2365,8 @@ REGIONS: List[RegionData] = [
         "Arthur's House - Teleporter to Egg Corridor?",
         [
             # Regions
-            ("Egg Corridor? - Teleporter to Arthur's House", lambda state, player: True),
+            ("Egg Corridor? - Teleporter to Arthur's House",
+             lambda state, player: True),
             ("Arthur's House - Main Teleporter", lambda state, player: True)
         ],
         [
@@ -2321,15 +2508,17 @@ REGIONS: List[RegionData] = [
         "Plantation - Lower Level",
         [
             # Regions
-            ("Plantation - Door to Teleporter", lambda state, player: True),
+            ("Plantation - Door to Teleporter", lambda state,
+             player: state.has("Teleporter Room Key", player, 1)),
             ("Plantation - Middle Level", lambda state, player: True)
         ],
         [
             # Locations
             ("Plantation - Kanpachi's Bucket", lambda state, player: True),
-            ("Plantation - Jammed it into Curly's mouth", lambda state, player: state.has("events;eventCurly;1") and state.has("items;maPignon;1")),
+            ("Plantation - Jammed it into Curly's mouth", lambda state,
+             player: state.has("Saved Curly", player, 1) and state.has("Ma Pignon", player, 1)),
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
@@ -2339,14 +2528,17 @@ REGIONS: List[RegionData] = [
             ("Plantation - Door to Rest Area", lambda state, player: True),
             ("Plantation - Door to Storehouse", lambda state, player: True),
             ("Plantation - Door to Passage?", lambda state, player: True),
-            ("Plantation - Door to Hideout", lambda state, player: True),
+            ("Plantation - Door to Hideout", lambda state,
+             player: state.has("Sue's Letter", player, 1)),
             ("Plantation - Lower Level", lambda state, player: True),
             ("Plantation - Upper Level", lambda state, player: True),
-            ("Plantation - Top Level", lambda state, player: True)
+            ("Plantation - Top Level", lambda state,
+             player: state.has("Built Rocket", player, 1))
         ],
         [
             # Locations
-            ("Plantation - Broken Sprinker", lambda state, player: True),
+            ("Plantation - Broken Sprinker", lambda state,
+             player: state.has("Mimiga Mask", player, 1)),
             # Events
         ]
     ),
@@ -2355,15 +2547,17 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Plantation - Door to Jail No. 1 (Lower)", lambda state, player: True),
-            ("Plantation - Door to Jail No. 1 (Upper)", lambda state, player: True),
+            ("Plantation - Door to Jail No. 1 (Upper)",
+             lambda state, player: has_flight(state, player)),
             ("Plantation - Door to Jail No. 2", lambda state, player: True),
             ("Plantation - Middle Level", lambda state, player: True),
-            ("Plantation - Top Level", lambda state, player: (state.has("items;booster2;1") and state.has("items;machineGun;1") and state.has("tricks;Dboost;4") and state.has("damage;Damage;2")) or (state.has("items;booster2;1") and state.has("tricks;Dboost;5")))
         ],
         [
             # Locations
-            ("Plantation - Plantation Platforming Spot", lambda state, player: has_flight(state, player) or (state.has("tricks;Dboost;3") and state.has("tricks;IframeReset;1") and state.has("damage;Damage;10") and reset_iframes(state, player))),
-            ("Plantation - Plantation Puppy", lambda state, player: state.has("events;eventRocket;1")),
+            ("Plantation - Plantation Platforming Spot",
+             lambda state, player: has_flight(state, player)),
+            ("Plantation - Plantation Puppy", lambda state,
+             player: state.has("Built Rocket", player, 1)),
             # Events
         ]
     ),
@@ -2383,9 +2577,11 @@ REGIONS: List[RegionData] = [
         "Plantation - Top Level",
         [
             # Regions
-            ("Plantation - Door to Last Cave (Hidden)", lambda state, player: state.has("items;booster2;1") and (state.has("events;eventRocket;1"))),
+            ("Plantation - Door to Last Cave (Hidden)", lambda state, player: state.has(
+                "Booster 2.0", player, 1) and (state.has("Built Rocket", player, 1))),
             ("Plantation - Upper Level", lambda state, player: True),
-            ("Plantation - Door to Final Cave", lambda state, player: state.has("items;booster2;1") and (state.has("events;eventRocket;1")))
+            ("Plantation - Door to Final Cave", lambda state, player: state.has(
+                "Booster 2.0", player, 1) and (state.has("Built Rocket", player, 1)))
         ],
         [
             # Locations
@@ -2414,7 +2610,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Storehouse - Itoh", lambda state, player: True),
+            ("Storehouse - Itoh", lambda state,
+             player: state.has("Sue's Letter", player, 1)),
             # Events
         ]
     ),
@@ -2446,8 +2643,10 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Statue Chamber - Door to Passage?", lambda state, player: True),
-            ("Passage? - Door to Plantation", lambda state, player: True),
-            ("Passage? - Door to Corridor", lambda state, player: True)
+            ("Passage? - Door to Plantation", lambda state,
+             player: state.has("Defeated Undead Core", player, 1)),
+            ("Passage? - Door to Corridor", lambda state,
+             player: state.has("Entered Passage? from above", player, 1))
         ],
         [
             # Locations
@@ -2459,7 +2658,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Corridor - Door to Passage?", lambda state, player: True),
-            ("Passage? - Door to Statue Chamber", lambda state, player: has_flight(state, player) and state.has("events;eventHell4;1"))
+            ("Passage? - Door to Statue Chamber", lambda state, player: has_flight(state,
+             player) and state.has("Entered Passage? from above", player, 1))
         ],
         [
             # Locations
@@ -2494,11 +2694,13 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Plantation - Door to Rest Area", lambda state, player: True),
-            ("Rest Area - Bed", lambda state, player: True)
+            ("Rest Area - Bed", lambda state,
+             player: state.has("Built Rocket", player, 1))
         ],
         [
             # Locations
-            ("Rest Area - Megane", lambda state, player: state.has("items;mask;1") and state.has("items;brokenSprinkler;1")),
+            ("Rest Area - Megane", lambda state, player: state.has("Mimiga Mask",
+             player, 1) and state.has("Broken Sprinkler", player, 1)),
             # Events
         ]
     ),
@@ -2529,14 +2731,18 @@ REGIONS: List[RegionData] = [
         "Teleporter - Room Hub",
         [
             # Regions
-            ("Teleporter - Door to Plantation", lambda state, player: True),
-            ("Teleporter - Teleporter to Arthur's House", lambda state, player: state.has("items;teleportKey;1") or state.has("events;eventDroll;1")),
-            ("Teleporter - Exit to Jail No. 1", lambda state, player: True)
+            ("Teleporter - Door to Plantation", lambda state,
+             player: state.has("Teleporter Room Key", player, 1)),
+            ("Teleporter - Teleporter to Arthur's House", lambda state, player: state.has(
+                "Teleporter Room Key", player, 1) or state.has("Droll Attack", player, 1)),
+            ("Teleporter - Exit to Jail No. 1", lambda state,
+             player: state.has("Droll Attack", player, 1))
         ],
         [
             # Locations
             # Events
-            ("Droll Attack", lambda state, player: True)
+            ("Droll Attack", lambda state, player: state.has(
+                "Teleporter Room Key", player, 1))
         ]
     ),
     RegionData(
@@ -2614,7 +2820,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Plantation - Door to Jail No. 2", lambda state, player: True),
-            ("Jail No. 2 - Teleporter to Shelter", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;1") and state.has("items;missiles;1")))
+            ("Jail No. 2 - Teleporter to Shelter", lambda state,
+             player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -2626,7 +2833,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Shelter - Teleporter to Jail No. 2", lambda state, player: True),
-            ("Jail No. 2 - Door to Plantation", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;1") and state.has("items;missiles;1")))
+            ("Jail No. 2 - Door to Plantation", lambda state,
+             player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -2642,9 +2850,11 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Hideout - Chivalry Sakamoto's Wife", lambda state, player: True),
+            ("Hideout - Chivalry Sakamoto's Wife", lambda state,
+             player: state.has("Booster 0.8", player, 1)),
             # Events
-            ("Built Rocket", lambda state, player: (state.has("items;booster1;1") or state.has("items;booster2;1")) and state.has("items;newSprinkler;1") and state.has("items;controller;1"))
+            ("Built Rocket", lambda state, player: (state.has("Booster 0.8", player, 1) or state.has(
+                "Booster 2.0", player, 1)) and state.has("Sprinkler", player, 1) and state.has("Controller", player, 1))
         ]
     ),
     RegionData(
@@ -2674,7 +2884,8 @@ REGIONS: List[RegionData] = [
         "Egg Corridor? - Door to Cthulhu's Abode? (Upper)",
         [
             # Regions
-            ("Cthulhu's Abode? - Door to Egg Corridor? (Upper)", lambda state, player: True),
+            ("Cthulhu's Abode? - Door to Egg Corridor? (Upper)",
+             lambda state, player: True),
             ("Egg Corridor? - Area Centre", lambda state, player: True)
         ],
         [
@@ -2686,7 +2897,8 @@ REGIONS: List[RegionData] = [
         "Egg Corridor? - Door to Cthulhu's Abode? (Lower)",
         [
             # Regions
-            ("Cthulhu's Abode? - Door to Egg Corridor? (Lower)", lambda state, player: True),
+            ("Cthulhu's Abode? - Door to Egg Corridor? (Lower)",
+             lambda state, player: True),
             ("Egg Corridor? - West Side", lambda state, player: True)
         ],
         [
@@ -2698,48 +2910,54 @@ REGIONS: List[RegionData] = [
         "Egg Corridor? - West Side",
         [
             # Regions
-            ("Egg Corridor? - Door to Cthulhu's Abode? (Lower)", lambda state, player: True)
+            ("Egg Corridor? - Door to Cthulhu's Abode? (Lower)",
+             lambda state, player: True)
         ],
         [
             # Locations
-            ("Egg Corridor? - Dragon Chest", lambda state, player: has_weapon(state, player) or state.has("tricks;pacifist;3") or (state.has("tricks;pacifist;2") and state.has("damage;Damage;10") and state.has("tricks;Dboost;1"))),
+            ("Egg Corridor? - Dragon Chest", lambda state,
+             player: has_weapon(state, player)),
             # Events
             ("Used Egg Corridor? Teleporter", lambda state, player: True),
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
         "Egg Corridor? - Area Centre",
         [
             # Regions
-            ("Egg Corridor? - Door to Cthulhu's Abode? (Upper)", lambda state, player: True),
-            ("Egg Corridor? - Door to Egg Observation Room? (West)", lambda state, player: True)
+            ("Egg Corridor? - Door to Cthulhu's Abode? (Upper)",
+             lambda state, player: True),
+            ("Egg Corridor? - Door to Egg Observation Room? (West)",
+             lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
         "Egg Corridor? - East Side",
         [
             # Regions
-            ("Egg Corridor? - Door to Egg Observation Room? (East)", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1") and has_flight(state, player)) or (state.has("tricks;Dboost;1") and state.has("damage;Damage;10") and state.has("tricks;pacifist;3"))),
+            ("Egg Corridor? - Door to Egg Observation Room? (East)",
+             lambda state, player: has_weapon(state, player)),
             ("Egg Corridor? - Door to Egg No. 00", lambda state, player: True),
             ("Egg Corridor? - Door to Side Room", lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
         "Egg Corridor? - Door to Egg Observation Room? (West)",
         [
             # Regions
-            ("Egg Observation Room? - Door to Egg Corridor? (Western)", lambda state, player: True),
+            ("Egg Observation Room? - Door to Egg Corridor? (Western)",
+             lambda state, player: True),
             ("Egg Corridor? - Area Centre", lambda state, player: True)
         ],
         [
@@ -2751,7 +2969,8 @@ REGIONS: List[RegionData] = [
         "Egg Corridor? - Door to Egg Observation Room? (East)",
         [
             # Regions
-            ("Egg Observation Room? - Door to Egg Corridor? (Eastern)", lambda state, player: True),
+            ("Egg Observation Room? - Door to Egg Corridor? (Eastern)",
+             lambda state, player: True),
             ("Egg Corridor? - East Side", lambda state, player: True)
         ],
         [
@@ -2787,7 +3006,8 @@ REGIONS: List[RegionData] = [
         "Egg Corridor? - Teleporter to Arthur's House",
         [
             # Regions
-            ("Arthur's House - Teleporter to Egg Corridor?", lambda state, player: True),
+            ("Arthur's House - Teleporter to Egg Corridor?",
+             lambda state, player: True),
             ("Egg Corridor? - West Side", lambda state, player: True)
         ],
         [
@@ -2799,8 +3019,10 @@ REGIONS: List[RegionData] = [
         "Cthulhu's Abode? - Door to Egg Corridor? (Upper)",
         [
             # Regions
-            ("Egg Corridor? - Door to Cthulhu's Abode? (Upper)", lambda state, player: True),
-            ("Cthulhu's Abode? - Door to Egg Corridor? (Lower)", lambda state, player: has_weapon(state, player) and (can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;1") and state.has("items;missiles;3"))))
+            ("Egg Corridor? - Door to Cthulhu's Abode? (Upper)",
+             lambda state, player: True),
+            ("Cthulhu's Abode? - Door to Egg Corridor? (Lower)", lambda state,
+             player: has_weapon(state, player) and can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -2811,8 +3033,10 @@ REGIONS: List[RegionData] = [
         "Cthulhu's Abode? - Door to Egg Corridor? (Lower)",
         [
             # Regions
-            ("Egg Corridor? - Door to Cthulhu's Abode? (Lower)", lambda state, player: True),
-            ("Cthulhu's Abode? - Door to Egg Corridor? (Upper)", lambda state, player: has_weapon(state, player) and (can_break_blocks(state, player) or (state.has("tricks;SNMissiles;1") and state.has("items;missiles;3")) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1"))))
+            ("Egg Corridor? - Door to Cthulhu's Abode? (Lower)",
+             lambda state, player: True),
+            ("Cthulhu's Abode? - Door to Egg Corridor? (Upper)", lambda state,
+             player: has_weapon(state, player) and (can_break_blocks(state, player)))
         ],
         [
             # Locations
@@ -2823,8 +3047,10 @@ REGIONS: List[RegionData] = [
         "Egg Observation Room? - Door to Egg Corridor? (Western)",
         [
             # Regions
-            ("Egg Corridor? - Door to Egg Observation Room? (West)", lambda state, player: True),
-            ("Egg Observation Room? - Door to Egg Corridor? (Eastern)", lambda state, player: True)
+            ("Egg Corridor? - Door to Egg Observation Room? (West)",
+             lambda state, player: True),
+            ("Egg Observation Room? - Door to Egg Corridor? (Eastern)",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -2835,9 +3061,12 @@ REGIONS: List[RegionData] = [
         "Egg Observation Room? - Door to Egg Corridor? (Eastern)",
         [
             # Regions
-            ("Egg Corridor? - Door to Egg Observation Room? (East)", lambda state, player: True),
-            ("Egg Observation Room? - Door to Egg Corridor? (Western)", lambda state, player: state.has("events;eventSisters;1") or has_flight(state, player)),
-            ("Egg Observation Room? - Save Point", lambda state, player: True)
+            ("Egg Corridor? - Door to Egg Observation Room? (East)",
+             lambda state, player: True),
+            ("Egg Observation Room? - Door to Egg Corridor? (Western)", lambda state,
+             player: state.has("Defeated Sisters", player, 1) or has_flight(state, player)),
+            ("Egg Observation Room? - Save Point", lambda state,
+             player: state.has("Defeated Sisters", player, 1))
         ],
         [
             # Locations
@@ -2849,7 +3078,8 @@ REGIONS: List[RegionData] = [
         "Egg Observation Room? - Save Point",
         [
             # Regions
-            ("Egg Observation Room? - Door to Egg Corridor? (Eastern)", lambda state, player: True)
+            ("Egg Observation Room? - Door to Egg Corridor? (Eastern)",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -2896,7 +3126,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Egg Corridor? - Door to Egg No. 00", lambda state, player: True),
-            ("Egg No. 00 - Door to Outer Wall", lambda state, player: True)
+            ("Egg No. 00 - Door to Outer Wall", lambda state,
+             player: state.has("Saved Kazuma", player, 1))
         ],
         [
             # Locations
@@ -2932,7 +3163,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Little House - Door to Outer Wall", lambda state, player: True),
-            ("Outer Wall - Room Bottom", lambda state, player: True)
+            ("Outer Wall - Room Bottom", lambda state,
+             player: has_flight(state, player))
         ],
         [
             # Locations
@@ -2944,13 +3176,14 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Outer Wall - Room Bottom", lambda state, player: True),
-            ("Outer Wall - Room Top", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;2") and has_flight(state, player)) or (state.has("tricks;pacifist;3") and state.has("damage;Damage;5")) or (state.has("tricks;pacifist;4"))),
+            ("Outer Wall - Room Top", lambda state,
+             player: has_weapon(state, player)),
             ("Outer Wall - Door to Clock Room", lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
@@ -2969,14 +3202,18 @@ REGIONS: List[RegionData] = [
         "Outer Wall - Room Bottom",
         [
             # Regions
-            ("Outer Wall - Door to Egg No. 00", lambda state, player: True),
-            ("Outer Wall - Door to Little House", lambda state, player: True),
-            ("Outer Wall - Outside Clock Room", lambda state, player: has_flight(state, player) or (remove_points_of_no_return(state, player) and state.has("events;eventOside;1")))
+            ("Outer Wall - Door to Egg No. 00", lambda state,
+             player: state.has("Saved Kazuma", player, 1)),
+            ("Outer Wall - Door to Little House",
+             lambda state, player: has_flight(state, player)),
+            ("Outer Wall - Outside Clock Room", lambda state, player: has_flight(state, player)
+             or (remove_points_of_no_return(state, player) and state.has("Entered Outer Wall from above", player, 1)))
         ],
         [
             # Locations
             # Events
-            ("Bad Ending", lambda state, player: state.has("misc;badEnd;1") and state.has("events;eventKazuma;1") and state.has("events;eventCore;1"))
+            ("Bad Ending", lambda state, player: state.has(
+                "Saved Kazuma", player, 1) and state.has("Defeated Core", player, 1))
         ]
     ),
     RegionData(
@@ -3011,7 +3248,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Little House - Little House", lambda state, player: state.has("items;blade;1") and state.has("items;mrLittle;1")),
+            ("Little House - Little House", lambda state, player: state.has("Blade",
+             player, 1) and state.has("Little Man", player, 1)),
             # Events
         ]
     ),
@@ -3044,7 +3282,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Arthur's House - Teleporter to Sand Zone", lambda state, player: True),
-            ("Sand Zone - Outside Sand Zone Residence", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;1") and state.has("items;missiles;1")))
+            ("Sand Zone - Outside Sand Zone Residence",
+             lambda state, player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -3055,9 +3294,11 @@ REGIONS: List[RegionData] = [
         "Sand Zone - Outside Sand Zone Residence",
         [
             # Regions
-            ("Sand Zone - Teleporter to Arthur's House", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;1") and (state.has("items;missiles;1") or state.has("items;supers;1")) and state.has("items;missile;1"))),
+            ("Sand Zone - Teleporter to Arthur's House",
+             lambda state, player: can_break_blocks(state, player)),
             ("Sand Zone - Door to Sand Zone Residence", lambda state, player: True),
-            ("Sand Zone - Above Sunstones", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNMissiles;2") and state.has("items;missiles;1") and state.has("items;missile;3")) or (state.has("tricks;SNMissiles;3") and (state.has("items;missile;3") or (state.has("items;missile;1") and state.has("items;supers;1")))) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")))
+            ("Sand Zone - Above Sunstones", lambda state,
+             player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -3081,14 +3322,16 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Sand Zone - Door to Deserted House", lambda state, player: True),
-            ("Sand Zone - Outside Jenka's House", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or ((state.has("tricks;SNMissiles;2") and state.has("items;missile;3")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;2")))),
-            ("Sand Zone - Outside Sand Zone Storehouse", lambda state, player: has_flight(state, player) or (has_flight(state, player) and state.has("tricks;pacifist;1")) or state.has("tricks;pacifist;2"))
+            ("Sand Zone - Outside Jenka's House", lambda state,
+             player: can_break_blocks(state, player)),
+            ("Sand Zone - Outside Sand Zone Storehouse",
+             lambda state, player: has_flight(state, player))
         ],
         [
             # Locations
             ("Sand Zone - Puppy (Run)", lambda state, player: True),
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
@@ -3107,7 +3350,8 @@ REGIONS: List[RegionData] = [
         "Sand Zone - Exit to Sand Zone Storehouse",
         [
             # Regions
-            ("Sand Zone Storehouse - Entrance from Sand Zone", lambda state, player: True)
+            ("Sand Zone Storehouse - Entrance from Sand Zone",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -3118,29 +3362,35 @@ REGIONS: List[RegionData] = [
         "Sand Zone - Above Sunstones",
         [
             # Regions
-            ("Sand Zone - Outside Sand Zone Residence", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or ((state.has("tricks;SNMissiles;2") and state.has("items;missile;3")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;2")))),
-            ("Sand Zone - Before Omega", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or ((state.has("tricks;SNMissiles;2") and state.has("items;missile;27")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;13")) or (state.has("tricks;SNMissiles;4") and state.has("items;missile;1")))),
-            ("Sand Zone - Outside Jenka's House", lambda state, player: state.has("events;eventOmega;1") and (can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;2") and state.has("items;missile;4")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;2")) or (state.has("tricks;SNMissiles;4") and state.has("items;missile;1")))),
-            ("Sand Zone - Pawprint Spot", lambda state, player: state.has("events;eventOmega;1") and (can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;2") and state.has("items;missiles;3"))))
+            ("Sand Zone - Outside Sand Zone Residence",
+             lambda state, player: can_break_blocks(state, player)),
+            ("Sand Zone - Before Omega", lambda state,
+             player: can_break_blocks(state, player)),
+            ("Sand Zone - Outside Jenka's House", lambda state, player: state.has(
+                "Defeated Omega", player, 1) and can_break_blocks(state, player)),
+            ("Sand Zone - Pawprint Spot", lambda state, player: state.has("Defeated Omega",
+             player, 1) and can_break_blocks(state, player))
         ],
         [
             # Locations
-            ("Sand Zone - Polish Spot", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or ((state.has("items;missile;10") and state.has("tricks;SNMissiles;2")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;5")))),
+            ("Sand Zone - Polish Spot", lambda state,
+             player: can_break_blocks(state, player)),
             # Events
-            ("Level MG", lambda state, player: True)
+            ("Level MG", lambda state, player: state.has("Machine Gun", player, 1))
         ]
     ),
     RegionData(
         "Sand Zone - Before Omega",
         [
             # Regions
-            ("Sand Zone - Above Sunstones", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or ((state.has("tricks;SNMissiles;2") and state.has("items;missile;22")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;11")) or (state.has("tricks;SNMissiles;4") and state.has("items;missile;1")))),
+            ("Sand Zone - Above Sunstones", lambda state,
+             player: can_break_blocks(state, player)),
             ("Sand Zone - Refill (Upper)", lambda state, player: True)
         ],
         [
             # Locations
             # Events
-            ("Omega", lambda state, player: (can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or ((state.has("tricks;SNMissiles;2") and state.has("items;missile;6")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;2")) or (state.has("tricks;SNMissiles;4") and state.has("items;missile;1")))) and (can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;1") and state.has("items;supers;1") and state.has("items;missile;11")) or (state.has("tricks;BossMissiles;2") and state.has("items;supers;1") and state.has("items;missile;10")) or (state.has("tricks;BossMissiles;3") and state.has("items;missiles;1") and state.has("items;missile;50")) or (state.has("tricks;BossMissiles;5") and state.has("items;missiles;1") and state.has("items;missile;25"))))
+            ("Defeated Omega", lambda state, player: can_break_blocks(state, player))
         ]
     ),
     RegionData(
@@ -3148,9 +3398,12 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Sand Zone - Door to Jenka's House", lambda state, player: True),
-            ("Sand Zone - Lower Side", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or ((state.has("tricks;SNMissiles;2") and state.has("items;missile;3")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;1")))),
-            ("Sand Zone - Above Sunstones", lambda state, player: ((state.has("tricks;SNMissiles;2") and state.has("items;missile;4")) or (state.has("tricks;SNMissiles;3") and state.has("items;missile;2")) or (state.has("tricks;SNMissiles;4") and state.has("items;missile;1")) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or can_break_blocks(state, player)) and state.has("events;eventOmega;1")),
-            ("Sand Zone - Pawprint Spot", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;2") and state.has("items;missiles;3")))
+            ("Sand Zone - Lower Side", lambda state,
+             player: can_break_blocks(state, player)),
+            ("Sand Zone - Above Sunstones", lambda state, player: can_break_blocks(state,
+             player) and state.has("Defeated Omega", player, 1)),
+            ("Sand Zone - Pawprint Spot", lambda state,
+             player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -3161,8 +3414,10 @@ REGIONS: List[RegionData] = [
         "Sand Zone - Pawprint Spot",
         [
             # Regions
-            ("Sand Zone - Above Sunstones", lambda state, player: state.has("events;eventOmega;1") and (can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;2") and state.has("items;missiles;3")))),
-            ("Sand Zone - Outside Jenka's House", lambda state, player: can_break_blocks(state, player) or (state.has("tricks;SNBubbler;1") and state.has("items;bubbler;1")) or (state.has("tricks;SNMissiles;2") and state.has("items;missiles;3")))
+            ("Sand Zone - Above Sunstones", lambda state, player: state.has(
+                "Defeated Omega", player, 1) and can_break_blocks(state, player)),
+            ("Sand Zone - Outside Jenka's House", lambda state,
+             player: can_break_blocks(state, player))
         ],
         [
             # Locations
@@ -3211,10 +3466,14 @@ REGIONS: List[RegionData] = [
         "Sand Zone - Outside Sand Zone Storehouse",
         [
             # Regions
-            ("Sand Zone - Lower Side", lambda state, player: has_weapon(state, player) or (state.has("tricks;pacifist;1") and has_flight(state, player)) or state.has("tricks;pacifist;2")),
-            ("Sand Zone - Exit to Sand Zone Storehouse", lambda state, player: True),
-            ("Sand Zone - Refill (Lower)", lambda state, player: True),
-            ("Sand Zone - Teleporter to Labyrinth I", lambda state, player: state.has("events;eventSandMazeTeleport;1") and remove_points_of_no_return(state, player))
+            ("Sand Zone - Lower Side", lambda state,
+             player: has_weapon(state, player)),
+            ("Sand Zone - Exit to Sand Zone Storehouse", lambda state,
+             player: state.has("Returned Puppies", player, 1)),
+            ("Sand Zone - Refill (Lower)", lambda state,
+             player: can_break_blocks(state, player)),
+            ("Sand Zone - Teleporter to Labyrinth I", lambda state, player: state.has(
+                "Used Labyrinth I Teleporter", player, 1) and remove_points_of_no_return(state, player))
         ],
         [
             # Locations
@@ -3249,12 +3508,14 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Sand Zone - Door to Sand Zone Residence", lambda state, player: True),
-            ("Sand Zone Residence - Door to Small Room", lambda state, player: True),
+            ("Sand Zone Residence - Door to Small Room", lambda state,
+             player: state.has("Defeated Curly", player, 1)),
             ("Sand Zone Residence - Before Curly", lambda state, player: True)
         ],
         [
             # Locations
-            ("Sand Zone Residence - Curly Boss", lambda state, player: state.has("events;eventFightCurly;1") and (state.has("items;polarStar;1") or state.has("items;spur;1"))),
+            ("Sand Zone Residence - Curly Boss", lambda state, player: state.has("Defeated Curly",
+             player, 1) and (state.has("Polar Star", player, 1) or state.has("Spur", player, 1))),
             # Events
         ]
     ),
@@ -3263,7 +3524,8 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             ("Small Room - Door to Sand Zone Residence", lambda state, player: True),
-            ("Sand Zone Residence - Door to Sand Zone", lambda state, player: True),
+            ("Sand Zone Residence - Door to Sand Zone", lambda state,
+             player: state.has("Defeated Curly", player, 1)),
             ("Sand Zone Residence - Before Curly", lambda state, player: True)
         ],
         [
@@ -3279,7 +3541,7 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             # Events
-            ("Curly", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;1") and state.has("items;supers;1") and state.has("items;missile;9")))
+            ("Curly", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
@@ -3328,9 +3590,11 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            ("Jenka's House - Jenka", lambda state, player: True),
+            ("Jenka's House - Jenka", lambda state,
+             player: state.has("Returned Puppies", player, 1)),
             # Events
-            ("Returned Puppies", lambda state, player: True)
+            ("Returned Puppies", lambda state,
+             player: state.has("Puppies", player, 5))
         ]
     ),
     RegionData(
@@ -3374,7 +3638,8 @@ REGIONS: List[RegionData] = [
             # Regions
             ("Sand Zone - Exit to Sand Zone Storehouse", lambda state, player: True),
             ("Sand Zone Storehouse - Before Toroko+", lambda state, player: True),
-            ("Sand Zone Storehouse - Exit to Labyrinth I", lambda state, player: True)
+            ("Sand Zone Storehouse - Exit to Labyrinth I", lambda state,
+             player: state.has("Defeated Toroko+", player, 1))
         ],
         [
             # Locations
@@ -3389,14 +3654,15 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             # Events
-            ("Toroko+", lambda state, player: can_kill_bosses(state, player) or (state.has("tricks;BossMissiles;2") and state.has("items;supers;1") and state.has("items;missile;13")) or (state.has("tricks;BossMissiles;4") and state.has("items;missiles;1") and state.has("items;missile;30")))
+            ("Toroko+", lambda state, player: can_kill_bosses(state, player))
         ]
     ),
     RegionData(
         "Sand Zone Storehouse - Exit to Labyrinth I",
         [
             # Regions
-            ("Labyrinth I - Entrance from Sand Zone Storehouse", lambda state, player: True)
+            ("Labyrinth I - Entrance from Sand Zone Storehouse",
+             lambda state, player: True)
         ],
         [
             # Locations
@@ -3404,4 +3670,3 @@ REGIONS: List[RegionData] = [
         ]
     ),
 ]
-

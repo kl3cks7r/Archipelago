@@ -39,7 +39,7 @@ class CaveStoryWorld(World):
     game = "Cave Story"
     topology_present = True
     item_name_to_id = {
-        item_data.name: item_data.item_id for item_data in ALL_ITEMS.values()}
+        name : data.item_id for name, data in ALL_ITEMS.items()}
     location_name_to_id = ALL_LOCATIONS
     data_version = 0
     # required_client_version = (0, 4, 1)
@@ -52,18 +52,14 @@ class CaveStoryWorld(World):
         # self.dificulty = self.multiworld.dificulty[self.player].value
 
     def create_regions(self) -> None:
-        menu = Region("Menu", self.player, self.multiworld)
-        menu.connect("Start Point")
-        self.multiworld.regions.append(menu)
         for region_data in REGIONS:
             region = Region(region_data.name, self.player, self.multiworld)
             for exits in region_data.exits:
-                region.add_exits(exits.keys(),exits)
-            for locations in region_data.locations:
-                # for loc in region.locations:
-                #     if loc.name in LOCATION_RULES:
-                #         loc.access_rule = partial(LOCATION_RULES[loc.name], player=self.player)
-                region.add_locations({locations[0]:ALL_LOCATIONS[locations[0]]},CaveStoryLocation)
+                region.add_exits(exits[0],exits[1])
+            for location in region_data.locations:
+                loc = CaveStoryLocation(self.player, location[0], ALL_LOCATIONS[location[0]], region)
+                loc.access_rule = location[1]
+                region.locations.append(loc)
             self.multiworld.regions.append(region)
 
     def create_items(self) -> None:

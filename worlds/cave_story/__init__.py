@@ -54,13 +54,17 @@ class CaveStoryWorld(World):
     def create_regions(self) -> None:
         for region_data in REGIONS:
             region = Region(region_data.name, self.player, self.multiworld)
-            for exits in region_data.exits:
-                region.add_exits(exits[0],exits[1])
-            for location in region_data.locations:
-                loc = CaveStoryLocation(self.player, location[0], ALL_LOCATIONS[location[0]], region)
-                loc.access_rule = location[1]
-                region.locations.append(loc)
             self.multiworld.regions.append(region)
+        for region_data in REGIONS:
+            region = self.multiworld.get_region(region_data.name, self.player)
+            for exits in region_data.exits:
+                exit_ = region.create_exit(f"{region.name} -> {exits.name}")
+                exit_.access_rule = exits.rule
+                exit_.connect(self.multiworld.get_region(exits.name, self.player))
+            for location in region_data.locations:
+                loc = CaveStoryLocation(self.player, location.name, ALL_LOCATIONS[location.name], region)
+                loc.access_rule = location.rule
+                region.locations.append(loc)
 
     def create_items(self) -> None:
         # Exclude preselected items if it becomes a feature. Must be replaced with junk items

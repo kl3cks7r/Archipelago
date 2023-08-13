@@ -57,14 +57,14 @@ class CaveStoryWorld(World):
             self.multiworld.regions.append(region)
         for region_data in REGIONS:
             region = self.multiworld.get_region(region_data.name, self.player)
-            for exits in region_data.exits:
-                exit_ = region.create_exit(f"{region.name} -> {exits.name}")
-                exit_.access_rule = exits.rule
-                exit_.connect(self.multiworld.get_region(exits.name, self.player))
-            for location in region_data.locations:
-                loc = CaveStoryLocation(self.player, location.name, ALL_LOCATIONS[location.name], region)
-                loc.access_rule = location.rule
-                region.locations.append(loc)
+            for exit_data in region_data.exits:
+                exit_ = region.create_exit(f"{region.name} -> {exit_data.name}")
+                exit_.access_rule = exit_data.rule(player=self.player) #lambda state, player=self.player, fn=exit_data.rule: lambda: fn(state,player)
+                exit_.connect(self.multiworld.get_region(exit_data.name, self.player))
+            for loc_data in region_data.locations:
+                loc_ = CaveStoryLocation(self.player, loc_data.name, ALL_LOCATIONS[loc_data.name], region)
+                loc_.access_rule = loc_data.rule(player=self.player) #lambda state, player=self.player, fn=loc_data.rule: lambda: fn(state, player)
+                region.locations.append(loc_)
 
     def create_items(self) -> None:
         # Exclude preselected items if it becomes a feature. Must be replaced with junk items
@@ -74,8 +74,8 @@ class CaveStoryWorld(World):
                     item_name, item_data.classification, item_data.item_id, self.player))
 
     def set_rules(self) -> None:        
-        self.multiworld.completion_condition[self.player] = lambda state: state.has(
-            "Victory", self.player)
+        self.multiworld.completion_condition[self.player] = lambda state, player=self.player: state.has(
+            "Best Ending", player)
 
     def generate_basic(self) -> None:
         pass
@@ -83,4 +83,8 @@ class CaveStoryWorld(World):
     # Unorder methods:
 
     def create_item(self, item: str):
-        return CaveStoryItem(*vars(ALL_ITEMS[item]).values(), self.player)
+        item_data = ALL_ITEMS[item]
+        return CaveStoryItem(item, item_data.classification, item_data.item_id, self.player)
+    
+    def get_filler_item_name(self) -> str:
+        return "Curly's Panties"

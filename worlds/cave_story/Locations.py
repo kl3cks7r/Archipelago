@@ -20,8 +20,11 @@ class CaveStoryLocation(Location):
     def __init__(self, player: int, name: str, loc_id: Optional[int], parent: Region):
         super().__init__(player, name, loc_id, parent)
         if loc_id is None:
+            if name[:-8] == "Level MG":
+                self.place_locked_item(CaveStoryItem(
+                    "Level MG", ItemClassification.useful, None, parent.player))
             self.place_locked_item(CaveStoryItem(
-                name, ItemClassification.progression, None, parent.player))
+                name, ItemClassification.useful, None, parent.player))
 
 
 ALL_LOCATIONS: Dict[str, Optional[int]] = {
@@ -95,10 +98,8 @@ ALL_LOCATIONS: Dict[str, Optional[int]] = {
     "Sand Zone Storehouse - King" : base_id + 67,
     # Events:
     "Defeated Igor" : None,
-    "Level Up Machine Gun" : None,
     "Lowered Egg Corridor Barrier" : None,
     "Saved Sue" : None,
-    "Saved Kazuma" : None,
     "Returned Santa's Key" : None,
     "Entered Grasstown from Fireplace" : None,
     "Summoned Jellies" : None,
@@ -124,6 +125,7 @@ ALL_LOCATIONS: Dict[str, Optional[int]] = {
     "Defeated Undead Core" : None,
     "Normal Ending" : None,
     "Picked up Curly (Hell)" : None,
+    "Picked up Curly (Core)" : None,
     "Defeated Heavy Press" : None,
     "Best Ending" : None,
     "Start in Start Point" : None,
@@ -137,10 +139,23 @@ ALL_LOCATIONS: Dict[str, Optional[int]] = {
     "Used Egg Corridor? Teleporter" : None,
     "Defeated Sisters" : None,
     "Bad Ending" : None,
-    "Entered Outer Wall from above" : None,
-    "Entered Outer Wall from above" : None,
+    "Entered Outer Wall from Storehouse" : None,
+    "Entered Outer Wall from Clock Room" : None,
     "Defeated Omega" : None,
     "Defeated Curly" : None,
     "Returned Puppies" : None,
     "Defeated Toroko+" : None,
+    "Egg Corridor - Level MG" : None,
+    "Grasstown (West) - Level MG" : None,
+    "Grasstown (East) - Level MG" : None,
+    "Labyrinth M - Level MG" : None,
+    "Labyrinth W - Level MG" : None,
+    "Shack - Level MG" : None,
+    "Plantation - Level MG" : None,
+    "Egg Corridor? (West) - Level MG" : None,
+    "Egg Corridor? (Centre) - Level MG" : None,
+    "Egg Corridor? (East) - Level MG" : None,
+    "Outer Wall - Level MG" : None,
+    "Sand Zone (Lower) - Level MG" : None,
+    "Sand Zone (Upper) - Level MG" : None
 }

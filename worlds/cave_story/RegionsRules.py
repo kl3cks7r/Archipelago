@@ -53,10 +53,6 @@ def traverse_labyrinth_w(state: CollectionState, player: int):
     return has_weapon(state, player)
 
 
-def requires(player: int, fn=trivial):
-    return partial(fn, player=player)
-
-
 REGIONS: List[RegionData] = [
     RegionData(
         "Menu",

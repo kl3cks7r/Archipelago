@@ -59,11 +59,11 @@ class CaveStoryWorld(World):
             region = self.multiworld.get_region(region_data.name, self.player)
             for exit_data in region_data.exits:
                 exit_ = region.create_exit(f"{region.name} -> {exit_data.name}")
-                exit_.access_rule = exit_data.rule(player=self.player) #lambda state, player=self.player, fn=exit_data.rule: lambda: fn(state,player)
+                exit_.access_rule = lambda state: lambda player=self.player, fn=exit_data.rule: fn(state,player)
                 exit_.connect(self.multiworld.get_region(exit_data.name, self.player))
             for loc_data in region_data.locations:
                 loc_ = CaveStoryLocation(self.player, loc_data.name, ALL_LOCATIONS[loc_data.name], region)
-                loc_.access_rule = loc_data.rule(player=self.player) #lambda state, player=self.player, fn=loc_data.rule: lambda: fn(state, player)
+                loc_.access_rule = lambda state: lambda player=self.player, fn=loc_data.rule: fn(state, player)
                 region.locations.append(loc_)
 
     def create_items(self) -> None:

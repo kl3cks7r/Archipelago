@@ -22,9 +22,9 @@ class CaveStoryLocation(Location):
         if loc_id is None:
             if name[:-8] == "Level MG":
                 self.place_locked_item(CaveStoryItem(
-                    "Level MG", ItemClassification.useful, None, parent.player))
+                    "Level MG", ItemClassification.progression_skip_balancing, None, parent.player))
             self.place_locked_item(CaveStoryItem(
-                name, ItemClassification.useful, None, parent.player))
+                name, ItemClassification.progression_skip_balancing, None, parent.player))
 
 
 ALL_LOCATIONS: Dict[str, Optional[int]] = {

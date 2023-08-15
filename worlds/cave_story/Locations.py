@@ -130,6 +130,7 @@ ALL_LOCATIONS: Dict[str, Optional[int]] = {
     "Best Ending" : None,
     "Start in Start Point" : None,
     "Defeated Ma Pignon" : None,
+    "Used Ma Pignon" : None,
     "Toroko Kidnapped" : None,
     "Defeated Balrog 1" : None,
     "Start in Arthur's House" : None,

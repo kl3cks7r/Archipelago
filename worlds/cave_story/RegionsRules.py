@@ -2450,10 +2450,12 @@ REGIONS: List[RegionData] = [
             # Locations
             RuleData("Plantation - Kanpachi's Bucket", trivial),
             RuleData("Plantation - Jammed it into Curly's mouth", lambda state,
-                     player: state.has("Saved Curly", player, 1) and state.has("Ma Pignon", player, 1)),
+                     player: state.has("Used Ma Pignon", player, 1)),
             # Events
             RuleData("Plantation - Level MG", lambda state,
-                     player: state.has("Machine Gun", player, 1))
+                     player: state.has("Machine Gun", player, 1)),
+            RuleData("Used Ma Pignon", lambda state,
+                     player: state.has("Saved Curly", player, 1) and state.has("Ma Pignon", player, 1))
         ]
     ),
     RegionData(

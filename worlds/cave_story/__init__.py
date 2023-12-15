@@ -1,9 +1,7 @@
-from functools import partial
-
 from BaseClasses import Region, Tutorial
 from worlds.AutoWorld import WebWorld, World
 from .Options import cave_story_options
-from .Items import CaveStoryItem, ALL_ITEMS
+from .Items import CaveStoryItem, ALL_ITEMS, FILLER_ITEMS
 from .Locations import CaveStoryLocation, ALL_LOCATIONS
 from .RegionsRules import REGIONS
 
@@ -88,8 +86,11 @@ class CaveStoryWorld(World):
     # Unorder methods:
 
     def create_item(self, item: str):
-        item_data = ALL_ITEMS[item]
+        if item in FILLER_ITEMS.keys():
+            item_data = FILLER_ITEMS[item]
+        else:
+            item_data = ALL_ITEMS[item]
         return CaveStoryItem(item, item_data.classification, item_data.item_id, self.player)
     
     def get_filler_item_name(self) -> str:
-        return "Curly's Panties"
+        return FILLER_ITEMS.keys()[0]

@@ -1,5 +1,4 @@
-from functools import partial
-from typing import List, NamedTuple, Tuple, Callable, Optional
+from typing import List, NamedTuple, Callable, Optional
 
 from BaseClasses import CollectionState
 
@@ -42,7 +41,8 @@ def can_kill_bosses(state: CollectionState, player: int):
 
 
 def has_weapon(state: CollectionState, player: int):
-    return state.has_any({"Blade", "Bubbler", "Fireball", "Machine Gun", "Nemesis", "Progressive Missile Launcher", "Progressive Polar Star", "Snake"}, player)
+    return state.has_any({"Blade", "Bubbler", "Fireball", "Machine Gun", "Nemesis", "Progressive Polar Star", "Snake"}, player)
+    # No missile logic yet "Progressive Missile Launcher"
 
 
 def remove_points_of_no_return(state: CollectionState, player: int):
@@ -82,7 +82,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Egg Corridor - Cthulhu's Abode", trivial),
+            RuleData("Egg Corridor - Outside Cthulhu's Abode", trivial),
             # Events
         ]
     ),
@@ -254,7 +254,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Egg No. 06 - Egg Chest", trivial),
+            RuleData("Egg No. 06 - Chest", trivial),
             # Events
         ]
     ),
@@ -266,7 +266,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Egg Observation Room - Egg Observation Room Chest", trivial),
+            RuleData("Egg Observation Room - Chest", trivial),
             # Events
         ]
     ),
@@ -452,8 +452,8 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Grasstown - West Grasstown Floor", has_weapon),
-            RuleData("Grasstown - West Grasstown Ceiling", has_weapon),
+            RuleData("Grasstown - West Floor", has_weapon),
+            RuleData("Grasstown - West Ceiling", has_weapon),
             RuleData("Grasstown - Kulala", lambda state, player: has_weapon(state,
                                                                             player) and state.has("Summoned Jellies", player, 1)),
             # Events
@@ -482,7 +482,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Grasstown - Grasstown East Chest", trivial),
+            RuleData("Grasstown - East Chest", trivial),
             RuleData("Grasstown - Kazuma Crack", trivial),
             RuleData("Grasstown - Kazuma Chest", lambda state,
                      player: state.has("Rusty Key", player, 1)),
@@ -527,7 +527,7 @@ REGIONS: List[RegionData] = [
             # Locations
             RuleData("Santa's House - Santa", lambda state,
                      player: state.has("Returned Santa's Key", player, 1)),
-            RuleData("Santa's House - Santa's Fireplace", lambda state,
+            RuleData("Santa's House - Fireplace", lambda state,
                      player: state.has("Jellyfish Juice", player, 1)),
             # Events
         ]
@@ -566,7 +566,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Chaco's House - Chaco's Bed, where you two Had A Nap",
+            RuleData("Chaco's House - Chaco's Bed",
                      lambda state, player: state.has("Returned Santa's Key", player, 1)),
             # Events
             RuleData("Summoned Jellies", lambda state, player: state.has(
@@ -665,7 +665,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Grasstown Hut - Grasstown Hut", trivial),
+            RuleData("Grasstown Hut - Chest", trivial),
             # Events
         ]
     ),
@@ -677,7 +677,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Execution Chamber - Execution Chamber", can_break_blocks),
+            RuleData("Execution Chamber - Above", can_break_blocks),
             # Events
         ]
     ),
@@ -689,7 +689,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Gum - Gum Chest", trivial),
+            RuleData("Gum - Chest", trivial),
             # Events
             RuleData("Defeated Balfrog", can_kill_bosses),
         ]
@@ -822,7 +822,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Boulder Chamber - Boulder Chest", lambda state,
+            RuleData("Boulder Chamber - Chest", lambda state,
                      player: state.has("Defeated Balrog 3", player, 1)),
             # Events
             RuleData("Defeated Balrog 3", lambda state, player: state.has(
@@ -1108,7 +1108,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Labyrinth I - Labyrinth Life Capsule", has_weapon),
+            RuleData("Labyrinth I - Critter Spot", has_weapon),
             # Events
             RuleData("Opened Labyrinth I Door", lambda state,
                      player: has_weapon(state, player)),
@@ -1355,7 +1355,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Camp - Camp Chest", trivial),
+            RuleData("Camp - Chest", trivial),
             # Events
         ]
     ),
@@ -1723,7 +1723,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Sacred Grounds - B1 - Hell B1 Spot", lambda state,
+            RuleData("Sacred Grounds - B1 - Ledge", lambda state,
                      player: state.has("Progressive Booster", player, 2)),
             # Events
             RuleData("Picked up Curly (Hell)", lambda state,
@@ -1777,7 +1777,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Sacred Grounds - B3 - Hell B3 Chest", lambda state,
+            RuleData("Sacred Grounds - B3 - Hidden Chest", lambda state,
                      player: has_flight(state, player) and can_break_blocks(state, player)),
             # Events
             RuleData("Defeated Heavy Press", lambda state, player: can_kill_bosses(
@@ -1876,7 +1876,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("First Cave - First Cave Life Capsule", trivial),
+            RuleData("First Cave - West Ledge", trivial),
             # Events
         ]
     ),
@@ -1912,7 +1912,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Hermit Gunsmith - Hermit Gunsmith Chest", trivial),
+            RuleData("Hermit Gunsmith - Chest", trivial),
             RuleData("Hermit Gunsmith - Tetsuzou", lambda state, player: state.has(
                 "Progressive Polar Star", player, 1) and state.has("Defeated Core", player, 1)),
             # Events
@@ -1948,7 +1948,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Mimiga Village - Mimiga Village Chest", trivial),
+            RuleData("Mimiga Village - Chest", trivial),
             # Events
         ]
     ),
@@ -2079,7 +2079,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Yamashita Farm - Yamashita Farm", trivial),
+            RuleData("Yamashita Farm - Pool", trivial),
             # Events
         ]
     ),
@@ -2093,7 +2093,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Reservoir - Reservoir", trivial),
+            RuleData("Reservoir - Fishing Spot", trivial),
             # Events
         ]
     ),
@@ -2129,7 +2129,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Assembly Hall - Assembly Hall Fireplace", lambda state,
+            RuleData("Assembly Hall - Fireplace", lambda state,
                      player: state.has("Jellyfish Juice", player, 1)),
             # Events
         ]
@@ -2139,21 +2139,21 @@ REGIONS: List[RegionData] = [
         [
             # Regions
             RuleData("Mimiga Village - Door to Graveyard", trivial),
-            RuleData("Graveyard - Door to Storage", lambda state,
+            RuleData("Graveyard - Door to Storage?", lambda state,
                      player: has_flight(state, player))
         ],
         [
             # Locations
             RuleData("Graveyard - Arthur's Grave", trivial),
-            RuleData("Graveyard - Mr. Little (Graveyard)", trivial),
+            RuleData("Graveyard - Mr. Little", trivial),
             # Events
         ]
     ),
     RegionData(
-        "Graveyard - Door to Storage",
+        "Graveyard - Door to Storage?",
         [
             # Regions
-            RuleData("Storage - Door to Graveyard", trivial),
+            RuleData("Storage? - Door to Graveyard", trivial),
             RuleData("Graveyard - Door to Mimiga Village", trivial)
         ],
         [
@@ -2162,16 +2162,16 @@ REGIONS: List[RegionData] = [
         ]
     ),
     RegionData(
-        "Storage - Door to Graveyard",
+        "Storage? - Door to Graveyard",
         [
             # Regions
-            RuleData("Graveyard - Door to Storage", trivial)
+            RuleData("Graveyard - Door to Storage?", trivial)
         ],
         [
             # Locations
-            RuleData("Storage - Storage? Chest", lambda state,
+            RuleData("Storage? - Chest", lambda state,
                      player: state.has("Saved Curly", player, 1)),
-            RuleData("Storage - Ma Pignon Boss", lambda state,
+            RuleData("Storage? - Ma Pignon Boss", lambda state,
                      player: state.has("Defeated Ma Pignon", player, 1)),
             # Events
             RuleData("Defeated Ma Pignon", lambda state, player: state.has("Mushroom Badge", player, 1) and (
@@ -2449,7 +2449,7 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             RuleData("Plantation - Kanpachi's Bucket", trivial),
-            RuleData("Plantation - Jammed it into Curly's mouth", lambda state,
+            RuleData("Plantation - Curly", lambda state,
                      player: state.has("Used Ma Pignon", player, 1)),
             # Events
             RuleData("Plantation - Level MG", lambda state,
@@ -2491,9 +2491,9 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Plantation - Plantation Platforming Spot",
+            RuleData("Plantation - Platforming Spot",
                      has_flight),
-            RuleData("Plantation - Plantation Puppy", lambda state,
+            RuleData("Plantation - Puppy", lambda state,
                      player: state.has("Built Rocket", player, 1)),
             # Events
         ]
@@ -2725,7 +2725,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Jail No. 1 - Jail No. 1", trivial),
+            RuleData("Jail No. 1 - Sue's Gift", trivial),
             # Events
         ]
     ),
@@ -2784,7 +2784,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Hideout - Chivalry Sakamoto's Wife", lambda state,
+            RuleData("Hideout - Momorin", lambda state,
                      player: state.has("Progressive Booster", player, 1)),
             # Events
             RuleData("Built Rocket", lambda state, player: (state.has("Progressive Booster", player, 1) or state.has(
@@ -3181,7 +3181,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Little House - Little House", lambda state,
+            RuleData("Little House - Mr. Little", lambda state,
                      player: state.has("Blade", player, 1) and state.has("Little Man", player, 1)),
             # Events
         ]
@@ -3194,7 +3194,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Clock Room - Clock Room", trivial),
+            RuleData("Clock Room - Chest", trivial),
             # Events
         ]
     ),
@@ -3259,7 +3259,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Sand Zone - Puppy (Run)", trivial),
+            RuleData("Sand Zone - Running Puppy", trivial),
             # Events
             RuleData("Sand Zone (Lower) - Level MG", lambda state,
                      player: state.has("Machine Gun", player, 1))
@@ -3347,7 +3347,7 @@ REGIONS: List[RegionData] = [
         [
             # Locations
             RuleData("Sand Zone - Pawprint Spot", trivial),
-            RuleData("Sand Zone - Puppy (Chest)", trivial),
+            RuleData("Sand Zone - Pawprint Chest", trivial),
             # Events
         ]
     ),
@@ -3401,7 +3401,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Sand Zone - Puppy (Sleep)", trivial),
+            RuleData("Sand Zone - Outside Warehouse", trivial),
             # Events
         ]
     ),
@@ -3477,7 +3477,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Small Room - Puppy (Curly)", trivial),
+            RuleData("Small Room - Beside Bed", trivial),
             RuleData("Small Room - Curly's Closet", trivial),
             # Events
         ]
@@ -3541,7 +3541,7 @@ REGIONS: List[RegionData] = [
         ],
         [
             # Locations
-            RuleData("Deserted House - Puppy (Dark)", trivial),
+            RuleData("Deserted House - Attic", trivial),
             # Events
         ]
     ),

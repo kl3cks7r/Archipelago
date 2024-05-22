@@ -160,41 +160,6 @@ List of supported mods:
 Some of these mods might need a patch mod to tie the randomizer with the mod. These can be found 
 [here](https://github.com/Witchybun/SDV-Randomizer-Content-Patcher/releases)
 
-## Mods
-
-Starting in version 4.x.x, some Stardew Valley mods unrelated to Archipelago are officially "supported".
-This means that, for these specific mods, if you decide to include them in your yaml settings, the multiworld will be generated with the assumption that you will install and play with these mods.
-The multiworld will contain related items and locations for these mods, the specifics will vary from mod to mod
-
-[Supported Mods Documentation](https://github.com/agilbert1412/StardewArchipelago/blob/4.x.x/Documentation/Supported%20Mods.md)
-
-List of supported mods:
-
-- General
-  - [DeepWoods](https://www.nexusmods.com/stardewvalley/mods/2571)
-  - [Tractor Mod](https://www.nexusmods.com/stardewvalley/mods/1401)
-  - [Bigger Backpack](https://www.nexusmods.com/stardewvalley/mods/1845)
-  - [Skull Cavern Elevator](https://www.nexusmods.com/stardewvalley/mods/963)
-- Skills
-  - [Luck Skill](https://www.nexusmods.com/stardewvalley/mods/521)
-  - [Magic](https://www.nexusmods.com/stardewvalley/mods/2007)
-  - [Socializing Skill](https://www.nexusmods.com/stardewvalley/mods/14142)
-  - [Archaeology](https://www.nexusmods.com/stardewvalley/mods/15793)
-  - [Cooking Skill](https://www.nexusmods.com/stardewvalley/mods/522)
-  - [Binning Skill](https://www.nexusmods.com/stardewvalley/mods/14073)
-- NPCs
-  - [Ayeisha - The Postal Worker (Custom NPC)](https://www.nexusmods.com/stardewvalley/mods/6427)
-  - [Mister Ginger (cat npc)](https://www.nexusmods.com/stardewvalley/mods/5295)
-  - [Juna - Roommate NPC](https://www.nexusmods.com/stardewvalley/mods/8606)
-  - [Professor Jasper Thomas](https://www.nexusmods.com/stardewvalley/mods/5599)
-  - [Alec Revisited](https://www.nexusmods.com/stardewvalley/mods/10697)
-  - [Custom NPC - Yoba](https://www.nexusmods.com/stardewvalley/mods/14871)
-  - [Custom NPC Eugene](https://www.nexusmods.com/stardewvalley/mods/9222)
-  - ['Prophet' Wellwick](https://www.nexusmods.com/stardewvalley/mods/6462)
-  - [Shiko - New Custom NPC](https://www.nexusmods.com/stardewvalley/mods/3732)
-  - [Delores - Custom NPC](https://www.nexusmods.com/stardewvalley/mods/5510)
-  - [Custom NPC - Riley](https://www.nexusmods.com/stardewvalley/mods/5811)
-
 ## Multiplayer
 
 You cannot play an Archipelago Slot in multiplayer at the moment. There are no short-term plans to support that feature.

@@ -296,20 +296,6 @@ class FestivalLocations(Choice):
     option_hard = 2
 
 
-class FestivalLocations(Choice):
-    """Locations for attending and participating in festivals
-    With Disabled, you do not need to attend festivals
-    With Easy, there are checks for participating in festivals
-    With Hard, the festival checks are only granted when the player performs well in the festival
-    """
-    internal_name = "festival_locations"
-    display_name = "Festival Locations"
-    default = 1
-    option_disabled = 0
-    option_easy = 1
-    option_hard = 2
-
-
 class ArcadeMachineLocations(Choice):
     """Shuffle the arcade machines?
     Disabled: The arcade machines are not included.

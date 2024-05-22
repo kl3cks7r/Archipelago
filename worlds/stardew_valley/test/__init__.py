@@ -251,6 +251,10 @@ class SVTestBase(RuleAssertMixin, WorldTestBase, SVTestCase):
 
     options = get_minsanity_options()
 
+    seed = DEFAULT_TEST_SEED
+
+    options = get_minsanity_options()
+
     def world_setup(self, *args, **kwargs):
         self.options = parse_class_option_keys(self.options)
 
@@ -266,6 +270,22 @@ class SVTestBase(RuleAssertMixin, WorldTestBase, SVTestCase):
         is_not_stardew_test = type(self) is not SVTestBase
         should_run_default_tests = is_not_stardew_test and super().run_default_tests
         return should_run_default_tests
+
+    def collect_lots_of_money(self):
+        self.multiworld.state.collect(self.world.create_item("Shipping Bin"), event=False)
+        for i in range(100):
+            self.multiworld.state.collect(self.world.create_item("Stardrop"), event=False)
+
+    def collect_all_the_money(self):
+        self.multiworld.state.collect(self.world.create_item("Shipping Bin"), event=False)
+        for i in range(1000):
+            self.multiworld.state.collect(self.world.create_item("Stardrop"), event=False)
+
+    def get_real_locations(self) -> List[Location]:
+        return [location for location in self.multiworld.get_locations(self.player) if location.address is not None]
+
+    def get_real_location_names(self) -> List[str]:
+        return [location.name for location in self.get_real_locations()]
 
     def collect_lots_of_money(self):
         self.multiworld.state.collect(self.world.create_item("Shipping Bin"), event=False)

@@ -95,10 +95,6 @@ Stardew-exclusive commands.
 
 See the [Supported mods documentation](https://github.com/agilbert1412/StardewArchipelago/blob/5.x.x/Documentation/Supported%20Mods.md)
 
-### Playing with supported mods
-
-See the [Supported mods documentation](https://github.com/agilbert1412/StardewArchipelago/blob/4.x.x/Documentation/Supported%20Mods.md)
-
 ### Multiplayer
 
 You cannot play an Archipelago Slot in multiplayer at the moment. There are no short-term plans to support that feature.

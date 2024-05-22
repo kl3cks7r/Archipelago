@@ -106,17 +106,6 @@ class StardewValleyWorld(World):
             logging.warning(
                 f"Goal '{goal_name}' requires Ginger Island. Exclude Ginger Island setting forced to 'False' for player {self.player} ({player_name})")
 
-    def force_change_options_if_incompatible(self):
-        goal_is_walnut_hunter = self.options[options.Goal] == options.Goal.option_greatest_walnut_hunter
-        goal_is_perfection = self.options[options.Goal] == options.Goal.option_perfection
-        goal_is_island_related = goal_is_walnut_hunter or goal_is_perfection
-        exclude_ginger_island = self.options[options.ExcludeGingerIsland] == options.ExcludeGingerIsland.option_true
-        if goal_is_island_related and exclude_ginger_island:
-            self.options[options.ExcludeGingerIsland] = options.ExcludeGingerIsland.option_false
-            goal = options.Goal.name_lookup[self.options[options.Goal]]
-            player_name = self.multiworld.player_name[self.player]
-            logging.warning(f"Goal '{goal}' requires Ginger Island. Exclude Ginger Island setting forced to 'False' for player {self.player} ({player_name})")
-
     def create_regions(self):
         def create_region(name: str, exits: Iterable[str]) -> Region:
             region = Region(name, self.player, self.multiworld)
@@ -274,6 +263,26 @@ class StardewValleyWorld(World):
         return list(location.name for location in self.multiworld.get_locations(self.player))
 
     def create_item(self, item: Union[str, ItemData], override_classification: ItemClassification = None) -> StardewItem:
+        if isinstance(item, str):
+            item = item_table[item]
+
+        if override_classification is None:
+            override_classification = item.classification
+
+        if override_classification == ItemClassification.progression and item.name != Event.victory:
+            self.total_progression_items += 1
+            # if item.name not in self.all_progression_items:
+            #     self.all_progression_items[item.name] = 0
+            # self.all_progression_items[item.name] += 1
+        return StardewItem(item.name, override_classification, item.code, self.player)
+
+    def delete_item(self, item: Item):
+        if item.classification & ItemClassification.progression:
+            self.total_progression_items -= 1
+            # if item.name in self.all_progression_items:
+            #     self.all_progression_items[item.name] -= 1
+
+    def create_starting_item(self, item: Union[str, ItemData]) -> StardewItem:
         if isinstance(item, str):
             item = item_table[item]
 

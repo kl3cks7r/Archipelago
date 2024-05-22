@@ -240,6 +240,8 @@ class TerrariaWorld(World):
                 return not sign
             elif condition == "calamity":
                 return sign == self.calamity
+            elif condition == "grindy":
+                return sign == (self.multiworld.achievements[self.player].value >= 2)
             elif condition == "pickaxe":
                 if type(arg) is not int:
                     raise Exception("@pickaxe requires an integer argument")
@@ -338,5 +340,6 @@ class TerrariaWorld(World):
     def fill_slot_data(self) -> Dict[str, object]:
         return {
             "goal": list(self.goal_locations),
+            "achievements": self.multiworld.achievements[self.player].value,
             "deathlink": bool(self.multiworld.death_link[self.player]),
         }

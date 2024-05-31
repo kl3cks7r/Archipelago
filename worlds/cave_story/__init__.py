@@ -1,11 +1,19 @@
 from BaseClasses import Region, Tutorial
 from worlds.AutoWorld import WebWorld, World
-from .Options import cave_story_options
+from worlds.LauncherComponents import Component, components, Type, launch_subprocess
+from .Options import CaveStoryOptions
 from .Items import CaveStoryItem, ALL_ITEMS, FILLER_ITEMS
 from .Locations import CaveStoryLocation, ALL_LOCATIONS
 from .RegionsRules import REGIONS
 
 base_id = 0xD00_000
+
+def launch_client():
+    from .Client import launch
+    launch_subprocess(launch, name="CaveStoryClient")
+
+components.append(Component("Cave Story Client", "CaveStoryClient", func=launch_client, component_type=Type.CLIENT))
+
 
 
 class CaveStoryWeb(WebWorld):
@@ -33,8 +41,9 @@ class CaveStoryWorld(World):
     of this world's power, stop the delusional villain and save the Mimiga!
     """
 
-    option_definitions = cave_story_options
     game = "Cave Story"
+    options_dataclass = CaveStoryOptions
+    options: CaveStoryOptions
     topology_present = True
     item_name_to_id = {
         name : data.item_id for name, data in ALL_ITEMS.items()}
@@ -77,7 +86,7 @@ class CaveStoryWorld(World):
             "Normal Ending",
             "Best Ending",
         ]
-        self.multiworld.completion_condition[self.player] = lambda state, player=self.player, goal=self.multiworld.goal[self.player]: state.has(
+        self.multiworld.completion_condition[self.player] = lambda state, player=self.player, goal=self.options.goal: state.has(
             goals[goal], player)
 
     def generate_basic(self) -> None:

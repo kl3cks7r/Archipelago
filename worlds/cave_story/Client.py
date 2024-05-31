@@ -183,8 +183,9 @@ async def cave_story_connector(ctx: CaveStoryContext):
     await ctx.patched.wait()
     patch_game(ctx)
     logger.info("Starting Cave Story")
-    exec_path = ctx.game_dir.joinpath('freeware','Doukutsu.exe')
-    subprocess.Popen([exec_path], cwd=ctx.game_dir)
+    exec_dir = ctx.game_dir.joinpath('freeware')
+    exec_path = exec_dir.joinpath('Doukutsu.exe')
+    subprocess.Popen([exec_path], cwd=exec_dir)
     logger.info("Starting Cave Story connector")
     while not ctx.exit_event.is_set():
         try:

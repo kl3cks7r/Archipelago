@@ -10,8 +10,8 @@ from collections import defaultdict
 
 LOC_TSC_EVENTS = ( # Index is location ID, tuple is TSC Event 
     ('Eggs','0403'), ('Eggs','0404'), ('Egg6','0201'), ('EggR','0301'),
-    ('Weed','0303'), ('Weed','0801'), ('Weed','0800'), ('Weed','0701'),
-    ('Weed','0702'), ('Weed','0700'), ('Santa','0501'), ('Santa','0302'),
+    ('Weed','0700'), ('Weed','0701'), ('Weed','0303'), ('Weed','0800'),
+    ('Weed','0801'), ('Weed','0702'), ('Santa','0501'), ('Santa','0302'),
     ('Chako','0212'), ('Malco','0350'), ('WeedB','0301'), ('WeedD','0305'),
     ('Frog','0300'), ('MazeB','0502'), ('MazeS','0202'), ('Almond','0243'),
     ('Almond','1111'), ('Pool','0412'), ('MazeI','0301'), ('MazeA','0502'),
@@ -68,7 +68,7 @@ def patch_files(locations, uuid, game_dir: Path, logger):
     base_dir = game_dir.joinpath("data")
     dest_dir = game_dir.joinpath("freeware","data")
     try:
-        shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True)
+        shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True, ignore=(lambda _dir, files: [file for file in files if not file[-3:] in ('pxe','tsc')]))
     except shutil.Error:
         raise Exception("Error copying base files. Ensure the directory is not read-only, and that Doukutsu.exe is closed")
 
@@ -90,11 +90,11 @@ def patch_files(locations, uuid, game_dir: Path, logger):
                 logger.debug(f"Error finding Event #{event} in {map_name}.tsc")
         encode_tsc(tsc_path,tsc.get_string())
 
-    # logger.info("Copying hash...")
-    # random.seed(uuid.int)
-    # hash = ",".join([f"{num:04d}" for num in [random.randint(0, 38) for _ in range(5)]])
-    # dest_dir.joinpath("hash.txt").write_text(hash)
-    # dest_dir.joinpath("uuid.txt").write_text(str({uuid}))
+    logger.info("Copying hash...")
+    random.seed(uuid.int)
+    hash = ",".join([f"{num:04d}" for num in [random.randint(1, 38) for _ in range(5)]])
+    dest_dir.joinpath("hash.txt").write_text(hash)
+    # dest_dir.joinpath("uuid.txt").write_text(str({str(uuid)}))
 
 def decode_tsc(path):
     with open(path,'rb') as f:

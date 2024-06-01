@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import os
+import uuid
 from .Patcher import *
 
 import Utils
@@ -16,6 +17,7 @@ from CommonClient import CommonContext, server_loop, gui_enabled, ClientCommandP
 AP_OFFSET = 0xD00_000
 CS_LOCATION_OFFSET = 7300
 LOCATIONS_NUM = 68
+BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
 
 class CSPacket(Enum):
     READINFO = 0
@@ -54,6 +56,8 @@ class CaveStoryContext(CommonContext):
             self.rcon_port = args.rcon_port
         else:
             self.rcon_port = 5451
+        self.seed_name = None
+        self.slot_num = None
 
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
@@ -62,11 +66,14 @@ class CaveStoryContext(CommonContext):
         await self.send_connect()
     
     def on_package(self, cmd: str, args: dict):
-        if cmd == 'Connected':
+        if cmd == 'RoomInfo':
+            self.seed_name = args['seed_name']
+        elif cmd == 'Connected':
             # uuid_path = self.game_dir.joinpath('data\\uuid.txt')
             # with open(uuid_path) as f:
             #     uuid = f.read()
             # if uuid == '{00000000-0000-1111-0000-000000000000}':
+            self.slot_num = args['slot']
             all_locations = self.server_locations
             Utils.async_start(self.send_msgs([
                 {"cmd": "LocationScouts",
@@ -75,7 +82,7 @@ class CaveStoryContext(CommonContext):
             ]))
         elif cmd == 'LocationInfo':
             if not self.patched.is_set():
-                self.patched.set()
+                patch_game(self)
         elif cmd == 'ReceivedItems':
             if self.patched.is_set():
                 Utils.async_start(send_packet(self, encode_packet(
@@ -176,21 +183,24 @@ def patch_game(ctx):
             player_name = ctx.player_names[item.player]
             item_name = ctx.item_names[item.item]
         locations.append([loc-AP_OFFSET,player_name,item_name])
-    uuid = None
-    patch_files(locations, uuid, ctx.game_dir, logger)
-
-async def cave_story_connector(ctx: CaveStoryContext):
-    await ctx.patched.wait()
-    patch_game(ctx)
+    if ctx.slot_num and ctx.seed_name:
+        cs_uuid = uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num))
+    else:
+        cs_uuid = None
+    patch_files(locations, cs_uuid, ctx.game_dir, logger)
     logger.info("Starting Cave Story")
     exec_dir = ctx.game_dir.joinpath('freeware')
     exec_path = exec_dir.joinpath('Doukutsu.exe')
     subprocess.Popen([exec_path], cwd=exec_dir)
+    ctx.patched.set()
+
+async def cave_story_connector(ctx: CaveStoryContext):
+    await ctx.patched.wait()
     logger.info("Starting Cave Story connector")
     while not ctx.exit_event.is_set():
         try:
             if not ctx.client_connected:
-                ctx.cs_streams = await asyncio.wait_for(asyncio.open_connection("localhost", ctx.rcon_port), timeout=10)
+                ctx.cs_streams = await asyncio.wait_for(asyncio.open_connection("localhost", ctx.rcon_port), timeout=4)
                 if ctx.cs_streams:
                     await send_packet(ctx, encode_packet(CSPacket.READINFO))
                 # TODO Check if running program's UUID, if mismatch tell user to restart CS and retry connection

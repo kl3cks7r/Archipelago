@@ -16,6 +16,7 @@ from CommonClient import CommonContext, server_loop, gui_enabled, ClientCommandP
 
 AP_OFFSET = 0xD00_000
 CS_LOCATION_OFFSET = 7300
+CS_COUNT_OFFSET = 7400
 LOCATIONS_NUM = 68
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
 
@@ -58,6 +59,8 @@ class CaveStoryContext(CommonContext):
             self.rcon_port = 5451
         self.seed_name = None
         self.slot_num = None
+        self.syncing = False
+        self.slot_data = None
 
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
@@ -80,16 +83,13 @@ class CaveStoryContext(CommonContext):
                 "locations": all_locations,
                 "create_as_hint": 0}
             ]))
+            self.slot_data = args['slot_data']
         elif cmd == 'LocationInfo':
             if not self.patched.is_set():
                 patch_game(self)
         elif cmd == 'ReceivedItems':
             if self.patched.is_set():
-                Utils.async_start(send_packet(self, encode_packet(
-                    CSPacket.RUNEVENTS,
-                    [item.item - AP_OFFSET for item in args['items']]
-                )))
-
+                self.syncing = True
 
     def run_gui(self):
         """Import kivy UI system and start running it as self.ui_task."""
@@ -124,34 +124,77 @@ def encode_packet(pkt_type: CSPacket, data = None, addr: int = None):
             data_bytes = data.to_bytes(1, 'little')
     return pkt_type.value.to_bytes(1, 'little') + len(data_bytes).to_bytes(4, 'little') + data_bytes
 
-def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes):
+def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync: bool=False):
     if pkt_type in (CSPacket.READINFO,):
         data = json.loads(data_bytes.decode())
         ctx.offsets = data['offsets']
         logger.info(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
     elif pkt_type in (CSPacket.READFLAGS,):
-        locations_checked = []
-        for i, b in enumerate(data_bytes):
-            if b == 1 and not ctx.locations_vec[i]:
-                ctx.locations_vec[i] = True
-                locations_checked.append(AP_OFFSET+i)
-        if len(locations_checked) > 0:
-            return ctx.send_msgs([
-                {"cmd": "LocationChecks",
-                "locations": locations_checked}
-            ])
+        if sync:
+            try:
+                bit_count = 0
+                verify_script = ''
+                for i, b in enumerate(data_bytes):
+                    bit_count <<= 1
+                    bit_count += b
+                    if b == 0x00:
+                        verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
+                logger.debug(f'Bit Count:{bit_count:016b}')
+                if (~bit_count & 0xFF) == (bit_count >> 8):
+                    count = bit_count & 0xFF
+                    if count != len(ctx.items_received):
+                        new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
+                        update_script = ''
+                        for i, j in enumerate(range(15,-1,-1)):
+                            if ((new_bit_count >> j) & 1) == 1:
+                                update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
+                            else:
+                                update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
+                        for i, item in enumerate(ctx.items_received):
+                            if i == count:
+                                logger.debug(f'>>>Item: {item.item-AP_OFFSET}')
+                            else:
+                                logger.debug(f'   Item: {item.item-AP_OFFSET}')
+                        script = verify_script + update_script + f'<EVE{ctx.items_received[count].item-AP_OFFSET:04}'
+                        return send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+                    else:
+                        logger.debug('Sync completed!')
+                        ctx.syncing = False
+                else:
+                    logger.debug('Resetting Count')
+                    update_script = ''
+                    for i in range(15,-1,-1):
+                        op = '+' if i < 8 else '-'
+                        update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
+                    script = update_script + '<END'
+                    return send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+            except Exception as e:
+                logger.debug(f'Syncing exception at line {e.__traceback__.tb_lineno}: {e}')
+        else:
+            locations_checked = []
+            for i, b in enumerate(data_bytes):
+                if b == 1 and not ctx.locations_vec[i]:
+                    ctx.locations_vec[i] = True
+                    locations_checked.append(AP_OFFSET+i)
+            if len(locations_checked) > 0:
+                return ctx.send_msgs([
+                    {"cmd": "LocationChecks",
+                    "locations": locations_checked}
+                ])
     elif pkt_type in (CSPacket.READMEM,):
         # I don't think i'll use this??
         pass
     elif pkt_type in (CSPacket.READSTATE,):
-        # I don't think i'll use this??
-        pass
+        # logger.debug(f'GameState={data_bytes[0]}')
+        if data_bytes[0] == 7:
+            ctx.syncing = True
+        return data_bytes[0] == 2
     elif pkt_type in (CSPacket.ERROR,):
         data = data_bytes.decode()
         logger.info(f"Cave Story Error: {data}")
     return None
 
-async def send_packet(ctx: CaveStoryContext, pkt: bytes):
+async def send_packet(ctx: CaveStoryContext, pkt: bytes, sync: bool=False):
     reader, writer = ctx.cs_streams
     writer.write(pkt)
     await asyncio.wait_for(writer.drain(), timeout=1.5)
@@ -161,12 +204,9 @@ async def send_packet(ctx: CaveStoryContext, pkt: bytes):
         length = int.from_bytes(header[1:4], 'little')
         if length > 0:
             data_bytes = await asyncio.wait_for(reader.read(length), timeout=5)
-            task = decode_packet(ctx, pkt_type, data_bytes)
-            if task:
-                await task
+            return decode_packet(ctx, pkt_type, data_bytes, sync)
         else:
             data_bytes = None
-        # logger.debug(f"Received {pkt_type} Packet:{data_bytes}")
 
 def teardown(ctx, msg):
     logger.debug(msg)
@@ -187,11 +227,12 @@ def patch_game(ctx):
         cs_uuid = uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num))
     else:
         cs_uuid = None
-    patch_files(locations, cs_uuid, ctx.game_dir, logger)
+    patch_files(locations, cs_uuid, ctx.game_dir, ctx.slot_data, logger)
     logger.info("Starting Cave Story")
     exec_dir = ctx.game_dir.joinpath('freeware')
     exec_path = exec_dir.joinpath('Doukutsu.exe')
     subprocess.Popen([exec_path], cwd=exec_dir)
+    ctx.syncing = True
     ctx.patched.set()
 
 async def cave_story_connector(ctx: CaveStoryContext):
@@ -209,12 +250,19 @@ async def cave_story_connector(ctx: CaveStoryContext):
                 logger.info("Successfully connected to Cave Story")
             elif ctx.cs_streams:
                 # Poll Cave Story for location flags
-                await send_packet(ctx, encode_packet(
+                task = await send_packet(ctx, encode_packet(
                     CSPacket.READFLAGS,
                     range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM)
                 ))
-                # TODO Items should accumualate in a list (in on_package) and be emptied here
-                pass
+                if task: await task
+                if ctx.syncing and await send_packet(ctx, encode_packet(CSPacket.READSTATE)):
+                    logger.debug("Attempting to sync")
+                    task = await send_packet(ctx, encode_packet(
+                        CSPacket.READFLAGS,
+                        range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
+                    ), True)
+                    if task:
+                        await task
                 # Pause between requests (and allow quiting!)
                 try:
                     await asyncio.wait_for(ctx.exit_event.wait(), 1)

@@ -63,7 +63,7 @@ class Npc:
     def __repr__(self):
         return (f"Npc(({self.x}, {self.y}), F={self.flag_number}, E={self.event_number}, T={self.type}, A={self.attributes:04x})")
 
-def patch_files(locations, uuid, game_dir: Path, logger):    
+def patch_files(locations, uuid, game_dir: Path, slot_data, logger):    
     logger.info("Copying base files...")
     base_dir = game_dir.joinpath("data")
     dest_dir = game_dir.joinpath("freeware","data")
@@ -80,6 +80,29 @@ def patch_files(locations, uuid, game_dir: Path, logger):
             tsc_script = f"\r\n<EVE{item:04d}\r\n"
         map_name, event_num = LOC_TSC_EVENTS[loc]
         scripts[map_name].append((event_num,tsc_script))
+    # Victory stuff is super hacky atm
+    # None: Bad | 6000: Normal | 6001: Best | 6002: All Bosses | 6004: 100%
+    # Goal flags
+    goal = slot_data['goal']
+    if goal == 1:
+        goal_flags = '<FL+6000'
+    elif goal == 2:
+        goal_flags = '<FL+6001'
+    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n<FL+6200<EVE0091\r\n'))
+    # Victory flags
+    if goal == 0:
+        tsc_path = dest_dir.joinpath("Stage", "Oside.tsc")
+        tsc = Tsc(decode_tsc(tsc_path))
+        tsc.vec[tsc.map['0402']][1] = '\r\n<FL+7368' + tsc.vec[tsc.map['0402']][1]
+        encode_tsc(tsc_path,tsc.get_string())
+    else:
+        tsc_path = dest_dir.joinpath("Stage", "Island.tsc")
+        tsc = Tsc(decode_tsc(tsc_path))
+        if goal == 1:
+            tsc.vec[tsc.map['0100']][1] = '\r\n<FL+7368' + tsc.vec[tsc.map['0100']][1]
+        elif goal == 2:
+            tsc.vec[tsc.map['0110']][1] = '\r\n<FL+7368' + tsc.vec[tsc.map['0110']][1]
+        encode_tsc(tsc_path,tsc.get_string())
     for map_name, events in scripts.items():
         tsc_path = dest_dir.joinpath("Stage", f"{map_name}.tsc")
         tsc = Tsc(decode_tsc(tsc_path))

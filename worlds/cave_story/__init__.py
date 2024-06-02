@@ -1,3 +1,4 @@
+from typing import Any, Mapping
 from BaseClasses import Region, Tutorial
 from worlds.AutoWorld import WebWorld, World
 from worlds.LauncherComponents import Component, components, Type, launch_subprocess
@@ -93,6 +94,9 @@ class CaveStoryWorld(World):
         pass
 
     # Unorder methods:
+
+    def fill_slot_data(self) -> Mapping[str, Any]:
+        return {'goal':int(self.options.goal)}
 
     def create_item(self, item: str):
         if item in FILLER_ITEMS.keys():

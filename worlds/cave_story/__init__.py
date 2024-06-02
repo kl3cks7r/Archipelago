@@ -1,5 +1,6 @@
-from typing import Any, Mapping
+from typing import Any, Mapping, ClassVar
 from BaseClasses import Region, Tutorial
+from settings import Group, FolderPath
 from worlds.AutoWorld import WebWorld, World
 from worlds.LauncherComponents import Component, components, Type, launch_subprocess
 from .Options import CaveStoryOptions
@@ -15,7 +16,11 @@ def launch_client():
 
 components.append(Component("Cave Story Client", "CaveStoryClient", func=launch_client, component_type=Type.CLIENT))
 
+class CaveStorySettings(Group):
+    class GameDir(FolderPath):
+        description = "Directory of pre_edited_cs"
 
+    game_path: GameDir = GameDir("pre_edited_cs")
 
 class CaveStoryWeb(WebWorld):
     tutorials = [
@@ -45,6 +50,8 @@ class CaveStoryWorld(World):
     game = "Cave Story"
     options_dataclass = CaveStoryOptions
     options: CaveStoryOptions
+    settings_key = "cave_story_settings"
+    settings: ClassVar[CaveStorySettings]
     topology_present = True
     item_name_to_id = {
         name : data.item_id for name, data in ALL_ITEMS.items()}

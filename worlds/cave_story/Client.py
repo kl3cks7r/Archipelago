@@ -8,6 +8,7 @@ import sys
 import os
 import uuid
 from .Patcher import *
+from . import CaveStoryWorld
 
 import Utils
 from settings import FolderPath
@@ -33,9 +34,6 @@ class CSPacket(Enum):
     ERROR = 255
     DISCONNECT = 255
 
-class GameDir(FolderPath):
-    description = "Directory of pre_edited_cs"
-
 class CaveStoryClientCommandProcessor(ClientCommandProcessor):
     def __init__(self, ctx: CommonContext):
         super().__init__(ctx)
@@ -55,7 +53,6 @@ class CaveStoryContext(CommonContext):
     command_processor: int = CaveStoryClientCommandProcessor
     game = "Cave Story"
     items_handling = 0b001
-    game_dir: FolderPath
 
     def __init__(self, args):
         super().__init__(args.connect, args.password)
@@ -65,11 +62,7 @@ class CaveStoryContext(CommonContext):
         self.game_watcher_task = None
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
-        if not args.game_dir:
-            self.game_dir = GameDir(Path(args.game_dir).expanduser())
-        else:
-            self.game_dir = GameDir()
-            self.game_dir.browse()
+        self.game_dir = CaveStoryWorld.settings.game_path
         if args.rcon_port:
             self.rcon_port = args.rcon_port
         else:
@@ -95,17 +88,20 @@ class CaveStoryContext(CommonContext):
             # with open(uuid_path) as f:
             #     uuid = f.read()
             # if uuid == '{00000000-0000-1111-0000-000000000000}':
-            self.slot_num = args['slot']
-            all_locations = self.server_locations
-            Utils.async_start(self.send_msgs([
-                {"cmd": "LocationScouts",
-                "locations": all_locations,
-                "create_as_hint": 0}
-            ]))
-            self.slot_data = args['slot_data']
+            if not self.patched.is_set():
+                self.slot_num = args['slot']
+                Utils.async_start(self.send_msgs([
+                    {"cmd": "LocationScouts",
+                    "locations": self.server_locations,
+                    "create_as_hint": 0}
+                ]))
+                self.slot_data = args['slot_data']
+            else:
+                launch_game(self)
         elif cmd == 'LocationInfo':
             if not self.patched.is_set():
                 patch_game(self)
+                launch_game(self)
         elif cmd == 'ReceivedItems':
             if self.patched.is_set():
                 self.syncing = True
@@ -158,7 +154,7 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
                     bit_count += b
                     if b == 0x00:
                         verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
-                logger.debug(f'Bit Count:{bit_count:016b}')
+                # logger.debug(f'Bit Count:{bit_count:016b}')
                 if (~bit_count & 0xFF) == (bit_count >> 8):
                     count = bit_count & 0xFF
                     if count != len(ctx.items_received):
@@ -169,11 +165,6 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
                                 update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
                             else:
                                 update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
-                        for i, item in enumerate(ctx.items_received):
-                            if i == count:
-                                logger.debug(f'>>>Item: {item.item-AP_OFFSET}')
-                            else:
-                                logger.debug(f'   Item: {item.item-AP_OFFSET}')
                         script = verify_script + update_script + f'<EVE{ctx.items_received[count].item-AP_OFFSET:04}'
                         return send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
                     else:
@@ -250,13 +241,16 @@ def patch_game(ctx):
         cs_uuid = uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num))
     else:
         cs_uuid = None
-    patch_files(locations, cs_uuid, ctx.game_dir, ctx.slot_data, logger)
+    logger.info(f"Game Dir: {ctx.game_dir}")
+    patch_files(locations, cs_uuid, Path(ctx.game_dir).expanduser(), ctx.slot_data, logger)
+    ctx.patched.set()
+
+def launch_game(ctx):
     logger.info("Starting Cave Story")
-    exec_dir = ctx.game_dir.joinpath('freeware')
-    exec_path = exec_dir.joinpath('Doukutsu.exe')
+    exec_dir = Path(ctx.game_dir).expanduser().joinpath('freeware')
+    exec_path = Path(exec_dir).joinpath('Doukutsu.exe')
     subprocess.Popen([exec_path], cwd=exec_dir)
     ctx.syncing = True
-    ctx.patched.set()
 
 async def cave_story_connector(ctx: CaveStoryContext):
     await ctx.patched.wait()
@@ -325,7 +319,6 @@ async def main(args):
 
 def launch():
     parser = get_base_parser(description="Cave Story Client, for text interfacing.")
-    parser.add_argument('--game-dir', default='', type=Path, help='Root directory of Cave Story')
     parser.add_argument('--rcon-port', default='5451', type=int, help='Port to use to communicate with CaveStory')
     args, rest = parser.parse_known_args()
 

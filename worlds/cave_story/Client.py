@@ -16,7 +16,8 @@ from CommonClient import CommonContext, server_loop, gui_enabled, ClientCommandP
 
 AP_OFFSET = 0xD00_000
 CS_LOCATION_OFFSET = 7300
-CS_COUNT_OFFSET = 7400
+CS_COUNT_OFFSET = 7500
+CS_DEATH_OFFSET = 7777
 LOCATIONS_NUM = 69
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
 
@@ -41,6 +42,10 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
             Utils.async_start(send_packet(self.ctx, encode_packet(CSPacket.RUNTSC, script)))
             return True
         return False
+    
+    def _cmd_cs_sync(self, script: str):
+        """Force a sync to occur"""
+        self.ctx.syncing = True
 
 class CaveStoryContext(CommonContext):
     command_processor: int = CaveStoryClientCommandProcessor
@@ -169,6 +174,7 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
                     else:
                         logger.debug('Sync completed!')
                         ctx.syncing = False
+                        return send_packet(ctx, encode_packet(CSPacket.RUNTSC, '<FL-7777'))
                 else:
                     logger.debug('Resetting Count')
                     update_script = ''
@@ -182,7 +188,10 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
         else:
             locations_checked = []
             for i, b in enumerate(data_bytes):
-                if b == 1 and not ctx.locations_vec[i]:
+                if i == LOCATIONS_NUM:
+                    if b == 1:
+                        ctx.syncing == True
+                elif b == 1 and not ctx.locations_vec[i]:
                     ctx.locations_vec[i] = True
                     if i == LOCATIONS_NUM - 1:
                         ctx.victory = True
@@ -197,9 +206,6 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
         # I don't think i'll use this??
         pass
     elif pkt_type in (CSPacket.READSTATE,):
-        # logger.debug(f'GameState={data_bytes[0]}')
-        if data_bytes[0] == 7:
-            ctx.syncing = True
         return data_bytes[0] == 2
     elif pkt_type in (CSPacket.ERROR,):
         data = data_bytes.decode()
@@ -264,10 +270,10 @@ async def cave_story_connector(ctx: CaveStoryContext):
                 # Poll Cave Story for location flags
                 task = await send_packet(ctx, encode_packet(
                     CSPacket.READFLAGS,
-                    range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM)
+                    range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM+1)
                 ))
                 if task: await task
-                if await send_packet(ctx, encode_packet(CSPacket.READSTATE)) and ctx.syncing:
+                if ctx.syncing and await send_packet(ctx, encode_packet(CSPacket.READSTATE)):
                     logger.debug("Attempting to sync")
                     task = await send_packet(ctx, encode_packet(
                         CSPacket.READFLAGS,

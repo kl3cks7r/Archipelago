@@ -17,7 +17,7 @@ from CommonClient import CommonContext, server_loop, gui_enabled, ClientCommandP
 AP_OFFSET = 0xD00_000
 CS_LOCATION_OFFSET = 7300
 CS_COUNT_OFFSET = 7400
-LOCATIONS_NUM = 68
+LOCATIONS_NUM = 69
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
 
 class CSPacket(Enum):
@@ -46,7 +46,7 @@ class CaveStoryContext(CommonContext):
         self.client_connected = False
         self.patched = asyncio.Event()
         self.game_watcher_task = None
-        self.locations_vec = [False] * 68
+        self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
         if not args.game_dir:
             self.game_dir = Path(args.game_dir).expanduser()
@@ -61,6 +61,8 @@ class CaveStoryContext(CommonContext):
         self.slot_num = None
         self.syncing = False
         self.slot_data = None
+        self.victory = False
+        self.finished_game = False
 
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
@@ -175,7 +177,10 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
             for i, b in enumerate(data_bytes):
                 if b == 1 and not ctx.locations_vec[i]:
                     ctx.locations_vec[i] = True
-                    locations_checked.append(AP_OFFSET+i)
+                    if i == LOCATIONS_NUM:
+                        ctx.victory = True
+                    else:
+                        locations_checked.append(AP_OFFSET+i)
             if len(locations_checked) > 0:
                 return ctx.send_msgs([
                     {"cmd": "LocationChecks",
@@ -263,6 +268,9 @@ async def cave_story_connector(ctx: CaveStoryContext):
                     ), True)
                     if task:
                         await task
+                if ctx.victory and not ctx.finished_game:
+                    ctx.finished_game = True
+                    await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])
                 # Pause between requests (and allow quiting!)
                 try:
                     await asyncio.wait_for(ctx.exit_event.wait(), 1)

@@ -34,6 +34,13 @@ class CSPacket(Enum):
 class CaveStoryClientCommandProcessor(ClientCommandProcessor):
     def __init__(self, ctx: CommonContext):
         super().__init__(ctx)
+    
+    def _cmd_tsc(self, script: str) -> bool:
+        """Execute the following TSC Comand"""
+        if self.ctx.cs_streams:
+            Utils.async_start(send_packet(self.ctx, encode_packet(CSPacket.RUNTSC, script)))
+            return True
+        return False
 
 class CaveStoryContext(CommonContext):
     command_processor: int = CaveStoryClientCommandProcessor
@@ -177,7 +184,7 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
             for i, b in enumerate(data_bytes):
                 if b == 1 and not ctx.locations_vec[i]:
                     ctx.locations_vec[i] = True
-                    if i == LOCATIONS_NUM:
+                    if i == LOCATIONS_NUM - 1:
                         ctx.victory = True
                     else:
                         locations_checked.append(AP_OFFSET+i)
@@ -260,7 +267,7 @@ async def cave_story_connector(ctx: CaveStoryContext):
                     range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM)
                 ))
                 if task: await task
-                if ctx.syncing and await send_packet(ctx, encode_packet(CSPacket.READSTATE)):
+                if await send_packet(ctx, encode_packet(CSPacket.READSTATE)) and ctx.syncing:
                     logger.debug("Attempting to sync")
                     task = await send_packet(ctx, encode_packet(
                         CSPacket.READFLAGS,

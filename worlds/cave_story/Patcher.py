@@ -68,7 +68,7 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
     base_dir = game_dir.joinpath("data")
     dest_dir = game_dir.joinpath("freeware","data")
     try:
-        shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True, ignore=(lambda _dir, files: [file for file in files if not file[-3:] in ('pxe','tsc')]))
+        shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True, ignore=(lambda _dir, files: [file for file in files if file[-3:] in ('pxm','pxa','tbl','txt')]))
     except shutil.Error:
         raise Exception("Error copying base files. Ensure the directory is not read-only, and that Doukutsu.exe is closed")
 
@@ -81,11 +81,13 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
         map_name, event_num = LOC_TSC_EVENTS[loc]
         scripts[map_name].append((event_num,tsc_script))
     # Victory stuff is super hacky atm
-    # None: Bad | 6000: Normal | 6001: Best | 6002: All Bosses | 6004: 100%
+    # 6003: Bad | 6000: Normal | 6001: Best | 6002: All Bosses | 6004: 100%
     # Goal flags
     goal = slot_data['goal']
     goal_flags = ''
-    if goal == 1:
+    if goal == 0:
+        goal_flags = '<FL+6003'
+    elif goal == 1:
         goal_flags = '<FL+6000'
     elif goal == 2:
         goal_flags = '<FL+6001'
@@ -114,11 +116,11 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
                 logger.debug(f"Error finding Event #{event} in {map_name}.tsc")
         encode_tsc(tsc_path,tsc.get_string())
 
-    logger.info("Copying hash...")
+    logger.info("Copying hash and uuid...")
     random.seed(uuid.int)
     hash = ",".join([f"{num:04d}" for num in [random.randint(1, 38) for _ in range(5)]])
     dest_dir.joinpath("hash.txt").write_text(hash)
-    # dest_dir.joinpath("uuid.txt").write_text(str({str(uuid)}))
+    dest_dir.joinpath("uuid.txt").write_text(str({str(uuid)}))
 
 def decode_tsc(path):
     with open(path,'rb') as f:

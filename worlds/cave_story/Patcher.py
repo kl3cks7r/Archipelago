@@ -115,6 +115,10 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
             except KeyError:
                 logger.debug(f"Error finding Event #{event} in {map_name}.tsc")
         encode_tsc(tsc_path,tsc.get_string())
+    tsc_path = dest_dir.joinpath("Head.tsc")
+    tsc = Tsc(decode_tsc(tsc_path))
+    tsc.set_event('0048','<SMC<LDP<FL+7777')
+    encode_tsc(tsc_path,tsc.get_string())
 
     logger.info("Copying hash and uuid...")
     random.seed(uuid.int)

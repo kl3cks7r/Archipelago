@@ -10,6 +10,7 @@ import uuid
 from .Patcher import *
 
 import Utils
+from settings import FolderPath
 
 from CommonClient import CommonContext, server_loop, gui_enabled, ClientCommandProcessor, logger, \
     get_base_parser
@@ -32,6 +33,9 @@ class CSPacket(Enum):
     ERROR = 255
     DISCONNECT = 255
 
+class GameDir(FolderPath):
+    description = "Directory of pre_edited_cs"
+
 class CaveStoryClientCommandProcessor(ClientCommandProcessor):
     def __init__(self, ctx: CommonContext):
         super().__init__(ctx)
@@ -51,6 +55,7 @@ class CaveStoryContext(CommonContext):
     command_processor: int = CaveStoryClientCommandProcessor
     game = "Cave Story"
     items_handling = 0b001
+    game_dir: FolderPath
 
     def __init__(self, args):
         super().__init__(args.connect, args.password)
@@ -61,10 +66,10 @@ class CaveStoryContext(CommonContext):
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
         if not args.game_dir:
-            self.game_dir = Path(args.game_dir).expanduser()
+            self.game_dir = GameDir(Path(args.game_dir).expanduser())
         else:
-            self.game_dir = Path(Utils.open_directory("Select pre_edited_cs Directory"))
-            logger.debug(self.game_dir)
+            self.game_dir = GameDir()
+            self.game_dir.browse()
         if args.rcon_port:
             self.rcon_port = args.rcon_port
         else:

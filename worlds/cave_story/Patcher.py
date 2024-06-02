@@ -84,6 +84,7 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
     # None: Bad | 6000: Normal | 6001: Best | 6002: All Bosses | 6004: 100%
     # Goal flags
     goal = slot_data['goal']
+    goal_flags = ''
     if goal == 1:
         goal_flags = '<FL+6000'
     elif goal == 2:

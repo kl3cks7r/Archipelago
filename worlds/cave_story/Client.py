@@ -22,6 +22,7 @@ CS_COUNT_OFFSET = 7500
 CS_DEATH_OFFSET = 7777
 LOCATIONS_NUM = 69
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
+VERSION = 'v0.2'
 
 class CSPacket(Enum):
     READINFO = 0
@@ -52,7 +53,7 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
 class CaveStoryContext(CommonContext):
     command_processor: int = CaveStoryClientCommandProcessor
     game = "Cave Story"
-    items_handling = 0b001
+    items_handling = 0b101
 
     def __init__(self, args):
         super().__init__(args.connect, args.password)
@@ -73,6 +74,8 @@ class CaveStoryContext(CommonContext):
         self.slot_data = None
         self.victory = False
         self.finished_game = False
+        self.death = False
+        logger.debug(f'Running version {VERSION}')
 
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
@@ -146,47 +149,47 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
         logger.info(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
     elif pkt_type in (CSPacket.READFLAGS,):
         if sync:
-            try:
-                bit_count = 0
-                verify_script = ''
-                for i, b in enumerate(data_bytes):
-                    bit_count <<= 1
-                    bit_count += b
-                    if b == 0x00:
-                        verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
-                # logger.debug(f'Bit Count:{bit_count:016b}')
-                if (~bit_count & 0xFF) == (bit_count >> 8):
-                    count = bit_count & 0xFF
-                    if count != len(ctx.items_received):
-                        new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
-                        update_script = ''
-                        for i, j in enumerate(range(15,-1,-1)):
-                            if ((new_bit_count >> j) & 1) == 1:
-                                update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
-                            else:
-                                update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
-                        script = verify_script + update_script + f'<EVE{ctx.items_received[count].item-AP_OFFSET:04}'
-                        return send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
-                    else:
-                        logger.debug('Sync completed!')
-                        ctx.syncing = False
-                        return send_packet(ctx, encode_packet(CSPacket.RUNTSC, '<FL-7777'))
-                else:
-                    logger.debug('Resetting Count')
+            bit_count = 0
+            verify_script = ''
+            for i, b in enumerate(data_bytes):
+                bit_count <<= 1
+                bit_count += b
+                if b == 0x00:
+                    verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
+            # logger.debug(f'Bit Count:{bit_count:016b}')
+            if (~bit_count & 0xFF) == (bit_count >> 8):
+                count = bit_count & 0xFF
+                if count != len(ctx.items_received):
+                    new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
                     update_script = ''
-                    for i in range(15,-1,-1):
-                        op = '+' if i < 8 else '-'
-                        update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
-                    script = update_script + '<END'
+                    for i, j in enumerate(range(15,-1,-1)):
+                        if ((new_bit_count >> j) & 1) == 1:
+                            update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
+                        else:
+                            update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
+                    script = verify_script + update_script + f'<EVE{ctx.items_received[count].item-AP_OFFSET:04}'
                     return send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
-            except Exception as e:
-                logger.debug(f'Syncing exception at line {e.__traceback__.tb_lineno}: {e}')
+                else:
+                    logger.debug('Sync completed!')
+                    ctx.syncing = False
+                    return send_packet(ctx, encode_packet(CSPacket.RUNTSC, '<FL-7777'))
+            else:
+                logger.debug('Resetting Count')
+                update_script = ''
+                for i in range(15,-1,-1):
+                    op = '+' if i < 8 else '-'
+                    update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
+                script = update_script + '<END'
+                return send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
         else:
             locations_checked = []
             for i, b in enumerate(data_bytes):
                 if i == LOCATIONS_NUM:
                     if b == 1:
-                        ctx.syncing == True
+                        ctx.death = True
+                    elif ctx.death:
+                        ctx.syncing = True
+                        ctx.death = False
                 elif b == 1 and not ctx.locations_vec[i]:
                     ctx.locations_vec[i] = True
                     if i == LOCATIONS_NUM - 1:
@@ -272,14 +275,13 @@ async def cave_story_connector(ctx: CaveStoryContext):
                     range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM+1)
                 ))
                 if task: await task
-                if ctx.syncing and await send_packet(ctx, encode_packet(CSPacket.READSTATE)):
+                if not ctx.death and ctx.syncing and await send_packet(ctx, encode_packet(CSPacket.READSTATE)):
                     logger.debug("Attempting to sync")
                     task = await send_packet(ctx, encode_packet(
                         CSPacket.READFLAGS,
                         range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
                     ), True)
-                    if task:
-                        await task
+                    if task: await task
                 if ctx.victory and not ctx.finished_game:
                     ctx.finished_game = True
                     await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])

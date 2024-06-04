@@ -11,23 +11,32 @@ class Goal(Choice):
     option_best = 2
     default = 2  # default to best
 
-# class EarlyWeapon(Toggle):
-#     """Ensures a weapon is placed early in your world"""
-#     display_name = "Early Weapon"
-#     default = True
+class NoFallingBlocks(Toggle):
+    """Disables falling blocks in Sacred Grounds: B2"""
+    display_name = "No Falling Blocks"
+    default = False
+
+class EarlyWeapon(Toggle):
+    """Ensures a weapon is placed early in your world"""
+    display_name = "Early Weapon"
+    default = True
 
 class StartingLocation(Choice):
     display_name = "Starting Location"
     option_start_point = 0
-    option_start_point_no_assistance = 1
-    option_arthurs_house = 2
-    default = 2
+    option_arthurs_house = 1
+    option_camp = 2
+    default = 0
 
-# class Deathlink(Toggle):
-#     """When you die, everyone dies. Of course the reverse is true too."""
-#     display_name = "Deathlink"
+class Deathlink(Toggle):
+    """When you die, everyone dies. Of course the reverse is true too."""
+    display_name = "Deathlink"
+    default = 0
 
 @dataclass
 class CaveStoryOptions(PerGameCommonOptions):
     goal: Goal
     starting_location: StartingLocation
+    early_weapon: EarlyWeapon
+    deathlink: Deathlink
+    no_blocks: NoFallingBlocks

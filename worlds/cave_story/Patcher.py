@@ -82,21 +82,36 @@ class Npc:
     def __repr__(self):
         return (f"Npc(({self.x}, {self.y}), F={self.flag_number}, E={self.event_number}, T={self.type}, A={self.attributes:04x})")
 
-def patch_files(locations, uuid, game_dir: Path, slot_data, logger):    
+def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logger):    
     logger.info("Copying base files...")
     base_dir = game_dir.joinpath("data")
-    dest_dir = game_dir.joinpath("freeware","data")
+    dest_dir = game_dir.joinpath(platform,"data")
     try:
-        shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True, ignore=(lambda _dir, files: [file for file in files if file[-3:] in ('pxm','pxa','tbl','txt')]))
+        shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True, ignore=(lambda _dir, files: [file for file in files if file[-3:] in ('txt')]))
     except shutil.Error:
         raise Exception("Error copying base files. Ensure the directory is not read-only, and that Doukutsu.exe is closed")
 
     scripts = defaultdict(list)
     for loc, player, item in locations:
         if player:
-            tsc_script = "\r\n<PRI<MSG<TUR<GIT1045\r\n"+f"Got {player}'s ={item}=!"+"<WAI0025<NOD<END\r\n"
+            if platform == 'freeware':
+                gfx = '<GIT1045'
+            else:
+                gfx = ''
+            tsc_script = "\r\n<PRI<MSG<TUR" + gfx + "\r\n"+f"Got {player}'s ={item}=!"+"<WAI0025<NOD<END\r\n"
         else:
-            tsc_script = f"\r\n<EVE{item:04d}\r\n"
+            if item < 100:
+                # Regular Items
+                tsc_script = f"\r\n<EVE{item:04d}\r\n"
+            elif item == 100:
+                # Health Refill
+                tsc_script = f"\r\n<PRI<MSG<TURGot Health Refill<WAIT0025<NOD<END<LI+\r\n"
+            elif item == 101:
+                # Missile Refill
+                tsc_script = f"\r\n<PRI<MSG<TURGot Missile Refill<WAIT0025<NOD<END<AE+\r\n"
+            elif item == 110:
+                # Black Wind Trap
+                tsc_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
         map_name, event_num = LOC_TSC_EVENTS[loc]
         scripts[map_name].append((event_num,tsc_script))
     # Victory stuff is super hacky atm
@@ -110,11 +125,18 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
         goal_flags = '<FL+6000'
     elif goal == 2:
         goal_flags = '<FL+6001'
-    if slot_data['start'] == 2:
+    if slot_data['start'] == 0:
+        start_room = '<FL+6200<EVE0091'
+    elif slot_data['start'] == 1:
         start_room = '<TRA0001:0094:0017:0008'
     else:
-        start_room = '<EVE0091'
-    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n<FL+6200{start_room}\r\n'))
+        start_room = '<TRA0040:0092:0004:0005'
+    if slot_data['no_blocks']:
+        no_blocks = '<FL+1351'
+    else:
+        no_blocks = ''
+    softlock_flags = '<MP+0040<MP+0043<MP+0032<MP+0033<MP+0036'
+    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{no_blocks}{softlock_flags}\r\n{start_room}\r\n'))
     # Victory flags
     if goal == 0:
         tsc_path = dest_dir.joinpath("Stage", "Oside.tsc")
@@ -148,7 +170,8 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
     tsc.vec[tsc.map['0042']][1] = '\r\n<FL+7777' + tsc.vec[tsc.map['0042']][1]
     encode_tsc(tsc_path,tsc.get_string())
     # AP sprite
-    patch_ap_sprite(dest_dir)
+    if platform == 'freeware':
+        patch_ap_sprite(dest_dir)
     # Hash and UUID
     logger.info("Copying hash and uuid...")
     random.seed(uuid.int)

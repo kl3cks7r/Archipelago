@@ -11,7 +11,6 @@ from .Patcher import *
 from . import CaveStoryWorld
 
 import Utils
-from settings import FolderPath
 
 from CommonClient import CommonContext, server_loop, gui_enabled, ClientCommandProcessor, logger, \
     get_base_parser
@@ -63,7 +62,9 @@ class CaveStoryContext(CommonContext):
         self.game_watcher_task = None
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
-        self.game_dir = CaveStoryWorld.settings.game_path
+        self.game_exe = Path(CaveStoryWorld.settings.game_exe).expanduser()
+        self.game_dir = self.game_exe.parents[1]
+        self.platform = self.game_exe.parts[-2]
         if args.rcon_port:
             self.rcon_port = args.rcon_port
         else:
@@ -108,6 +109,10 @@ class CaveStoryContext(CommonContext):
         elif cmd == 'ReceivedItems':
             if self.patched.is_set():
                 self.syncing = True
+
+    def on_deathlink(self, data):
+        super().on_deathlink(data)
+        send_packet(self, encode_packet(CSPacket.RUNTSC, '<HMC<SOU0017<TRA:0000:0042:0000:0000'))
 
     def run_gui(self):
         """Import kivy UI system and start running it as self.ui_task."""
@@ -167,7 +172,20 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
                             update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
                         else:
                             update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
-                    script = verify_script + update_script + f'<EVE{ctx.items_received[count].item-AP_OFFSET:04}'
+                    item_id = ctx.items_received[count].item-AP_OFFSET
+                    if item_id < 100:
+                        # Normal items
+                        item_script = f'<EVE{item_id:04}'
+                    elif item_id == 100:
+                        # Health Refill
+                        item_script = f"\r\n<PRI<MSG<TURGot Health Refill<WAIT0025<NOD<END<LI+\r\n"
+                    elif item_id == 101:
+                        # Missile Refill
+                        item_script = f"\r\n<PRI<MSG<TURGot Missile Refill<WAIT0025<NOD<END<AE+\r\n"
+                    elif item_id == 110:
+                        # Black Wind Trap
+                        item_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
+                    script = verify_script + update_script + item_script
                     return send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
                 else:
                     logger.debug('Sync completed!')
@@ -185,9 +203,11 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
             locations_checked = []
             for i, b in enumerate(data_bytes):
                 if i == LOCATIONS_NUM:
-                    if b == 1:
+                    if b == 1 and not ctx.death:
                         logger.debug('Death detected from Client')
                         ctx.death = True
+                        if ctx.slot_data['deathlink']:
+                            Utils.async_start(ctx.send_death(ctx))
                     elif ctx.death:
                         logger.debug('Reloaded, permitting sync')
                         ctx.syncing = True
@@ -247,14 +267,13 @@ def patch_game(ctx):
     else:
         cs_uuid = None
     logger.info(f"Game Dir: {ctx.game_dir}")
-    patch_files(locations, cs_uuid, Path(ctx.game_dir).expanduser(), ctx.slot_data, logger)
+    patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
     ctx.patched.set()
 
 def launch_game(ctx):
     logger.info("Starting Cave Story")
-    exec_dir = Path(ctx.game_dir).expanduser().joinpath('freeware')
-    exec_path = Path(exec_dir).joinpath('Doukutsu.exe')
-    subprocess.Popen([exec_path], cwd=exec_dir)
+    exec_dir = ctx.game_dir.joinpath(ctx.platform)
+    subprocess.Popen([ctx.game_exe], cwd=exec_dir)
     ctx.syncing = True
 
 async def cave_story_connector(ctx: CaveStoryContext):

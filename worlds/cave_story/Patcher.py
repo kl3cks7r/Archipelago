@@ -110,7 +110,11 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
         goal_flags = '<FL+6000'
     elif goal == 2:
         goal_flags = '<FL+6001'
-    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n<FL+6200<EVE0091\r\n'))
+    if slot_data['start'] == 2:
+        start_room = '<TRA0001:0094:0017:0008'
+    else:
+        start_room = '<EVE0091'
+    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n<FL+6200{start_room}\r\n'))
     # Victory flags
     if goal == 0:
         tsc_path = dest_dir.joinpath("Stage", "Oside.tsc")
@@ -125,6 +129,7 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
         elif goal == 2:
             tsc.vec[tsc.map['0110']][1] = '\r\n<FL+7368' + tsc.vec[tsc.map['0110']][1]
         encode_tsc(tsc_path,tsc.get_string())
+    # Patch all maps in scripts
     for map_name, events in scripts.items():
         tsc_path = dest_dir.joinpath("Stage", f"{map_name}.tsc")
         tsc = Tsc(decode_tsc(tsc_path))
@@ -134,12 +139,17 @@ def patch_files(locations, uuid, game_dir: Path, slot_data, logger):
             except KeyError:
                 logger.debug(f"Error finding Event #{event} in {map_name}.tsc")
         encode_tsc(tsc_path,tsc.get_string())
+    # Death detection
     tsc_path = dest_dir.joinpath("Head.tsc")
     tsc = Tsc(decode_tsc(tsc_path))
-    tsc.set_event('0048','<SMC<LDP<FL+7777')
+    # tsc.vec[tsc.map['0016']][1] = '\r\n<FL+7777' + tsc.vec[tsc.map['0016']][1]
+    tsc.vec[tsc.map['0040']][1] = '\r\n<FL+7777' + tsc.vec[tsc.map['0040']][1]
+    tsc.vec[tsc.map['0041']][1] = '\r\n<FL+7777' + tsc.vec[tsc.map['0041']][1]
+    tsc.vec[tsc.map['0042']][1] = '\r\n<FL+7777' + tsc.vec[tsc.map['0042']][1]
     encode_tsc(tsc_path,tsc.get_string())
+    # AP sprite
     patch_ap_sprite(dest_dir)
-
+    # Hash and UUID
     logger.info("Copying hash and uuid...")
     random.seed(uuid.int)
     hash = ",".join([f"{num:04d}" for num in [random.randint(1, 38) for _ in range(5)]])

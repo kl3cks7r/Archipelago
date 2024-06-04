@@ -52,15 +52,7 @@ def remove_points_of_no_return(state: CollectionState, player: int):
 def traverse_labyrinth_w(state: CollectionState, player: int):
     return has_weapon(state, player)
 
-
 REGIONS: List[RegionData] = [
-    RegionData(
-        "Menu",
-        [
-            RuleData("Start Point - Door to First Cave", trivial)
-        ],
-        []
-    ),
     RegionData(
         "Egg Corridor - Door to Cthulhu's Abode (Lower)",
         [

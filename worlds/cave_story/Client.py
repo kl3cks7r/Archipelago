@@ -186,8 +186,10 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
             for i, b in enumerate(data_bytes):
                 if i == LOCATIONS_NUM:
                     if b == 1:
+                        logger.debug('Death detected from Client')
                         ctx.death = True
                     elif ctx.death:
+                        logger.debug('Reloaded, permitting sync')
                         ctx.syncing = True
                         ctx.death = False
                 elif b == 1 and not ctx.locations_vec[i]:
@@ -272,7 +274,7 @@ async def cave_story_connector(ctx: CaveStoryContext):
                 # Poll Cave Story for location flags
                 task = await send_packet(ctx, encode_packet(
                     CSPacket.READFLAGS,
-                    range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM+1)
+                    [*range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM),7777]
                 ))
                 if task: await task
                 if not ctx.death and ctx.syncing and await send_packet(ctx, encode_packet(CSPacket.READSTATE)):

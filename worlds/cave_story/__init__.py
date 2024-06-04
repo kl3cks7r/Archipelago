@@ -1,12 +1,12 @@
 from typing import Any, Mapping, ClassVar
-from BaseClasses import Region, Tutorial
+from BaseClasses import CollectionState, Region, Tutorial, Item
 from settings import Group, FolderPath
 from worlds.AutoWorld import WebWorld, World
 from worlds.LauncherComponents import Component, components, Type, launch_subprocess
 from .Options import CaveStoryOptions
 from .Items import CaveStoryItem, ALL_ITEMS, FILLER_ITEMS
 from .Locations import CaveStoryLocation, ALL_LOCATIONS
-from .RegionsRules import REGIONS
+from .RegionsRules import REGIONS, RegionData, RuleData, trivial
 
 base_id = 0xD00_000
 
@@ -67,10 +67,14 @@ class CaveStoryWorld(World):
         # self.dificulty = self.multiworld.dificulty[self.player].value
 
     def create_regions(self) -> None:
-        for region_data in REGIONS:
+        if self.options.starting_location == 2:
+            starting_region = RegionData("Menu",[RuleData("Arthur's House - Main Teleporter", trivial)],[])
+        else:
+            starting_region = RegionData("Menu",[RuleData("Start Point - Door to First Cave", trivial)],[])
+        for region_data in [starting_region,*REGIONS]:
             region = Region(region_data.name, self.player, self.multiworld)
             self.multiworld.regions.append(region)
-        for region_data in REGIONS:
+        for region_data in [starting_region,*REGIONS]:
             region = self.multiworld.get_region(region_data.name, self.player)
             for exit_data in region_data.exits:
                 exit_ = region.create_exit(f"{region.name} -> {exit_data.name}")
@@ -82,11 +86,32 @@ class CaveStoryWorld(World):
                 region.locations.append(loc_)
 
     def create_items(self) -> None:
+        world_itempool: list[Item] = []
         # Exclude preselected items if it becomes a feature. Must be replaced with junk items
         for (item_name, item_data) in ALL_ITEMS.items():
             for _i in range(item_data.cnt):
-                self.multiworld.itempool.append(CaveStoryItem(
+                world_itempool.append(CaveStoryItem(
                     item_name, item_data.classification, item_data.item_id, self.player))
+            # Custom handling for making only ONE missile expansion progression so we don't always start with missiles
+            # if item_name == "Missile Expansion":
+            #     self.multiworld.itempool[-item_data.cnt].classification = ItemClassification.progression
+        # If early weapon is on place one of the weapons
+        if self.options.starting_location == 0:
+            block_breaking_weapons = [
+                "Blade",
+                "Machine Gun",
+                "Nemesis",
+                "Progressive Polar Star",
+                "Bubbler"
+                "Missile Expansion",
+            ]
+            initial_state = CollectionState(self.multiworld)
+            sphere_1_locs = self.multiworld.get_reachable_locations(initial_state, self.player)
+            start_loc = self.random.choice(sphere_1_locs)
+            start_weapon = self.random.choice([item for item in world_itempool if item.name in block_breaking_weapons])
+            world_itempool.remove(start_weapon)
+            start_loc.place_locked_item(start_weapon)
+        self.multiworld.itempool.extend(world_itempool)
 
     def set_rules(self) -> None:        
         goals = [
@@ -103,7 +128,11 @@ class CaveStoryWorld(World):
     # Unorder methods:
 
     def fill_slot_data(self) -> Mapping[str, Any]:
-        return {'goal':int(self.options.goal)}
+        slot_data = {
+            'goal' : int(self.options.goal),
+            'start': int(self.options.starting_location),
+        }
+        return slot_data
 
     def create_item(self, item: str):
         if item in FILLER_ITEMS.keys():

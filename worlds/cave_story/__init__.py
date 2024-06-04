@@ -1,6 +1,6 @@
 from typing import Any, Mapping, ClassVar
 from BaseClasses import CollectionState, Region, Tutorial, Item
-from settings import Group, FolderPath
+from settings import Group, FilePath
 from worlds.AutoWorld import WebWorld, World
 from worlds.LauncherComponents import Component, components, Type, launch_subprocess
 from .Options import CaveStoryOptions
@@ -17,10 +17,11 @@ def launch_client():
 components.append(Component("Cave Story Client", "CaveStoryClient", func=launch_client, component_type=Type.CLIENT))
 
 class CaveStorySettings(Group):
-    class GameDir(FolderPath):
-        description = "Directory of pre_edited_cs"
+    class GameExe(FilePath):
+        description = "Cave Story Executable"
+        is_exe = True
 
-    game_path: GameDir = GameDir("pre_edited_cs")
+    game_exe: GameExe = GameExe("cave_story_exe")
 
 class CaveStoryWeb(WebWorld):
     tutorials = [
@@ -67,10 +68,12 @@ class CaveStoryWorld(World):
         # self.dificulty = self.multiworld.dificulty[self.player].value
 
     def create_regions(self) -> None:
-        if self.options.starting_location == 2:
+        if self.options.starting_location == 0:
+            starting_region = RegionData("Menu",[RuleData("Start Point - Door to First Cave", trivial)],[])
+        elif self.options.starting_location == 1:
             starting_region = RegionData("Menu",[RuleData("Arthur's House - Main Teleporter", trivial)],[])
         else:
-            starting_region = RegionData("Menu",[RuleData("Start Point - Door to First Cave", trivial)],[])
+            starting_region = RegionData("Menu",[RuleData("Camp - Door to Labyrinth W (Lower)", trivial)],[])
         for region_data in [starting_region,*REGIONS]:
             region = Region(region_data.name, self.player, self.multiworld)
             self.multiworld.regions.append(region)
@@ -96,7 +99,7 @@ class CaveStoryWorld(World):
             # if item_name == "Missile Expansion":
             #     self.multiworld.itempool[-item_data.cnt].classification = ItemClassification.progression
         # If early weapon is on place one of the weapons
-        if self.options.starting_location == 0:
+        if self.options.early_weapon:
             block_breaking_weapons = [
                 "Blade",
                 "Machine Gun",
@@ -131,6 +134,8 @@ class CaveStoryWorld(World):
         slot_data = {
             'goal' : int(self.options.goal),
             'start': int(self.options.starting_location),
+            'deathlink' : bool(self.options.deathlink),
+            'no_blocks': bool(self.options.no_blocks),
         }
         return slot_data
 

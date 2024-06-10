@@ -1664,7 +1664,8 @@ REGIONS: List[RegionData] = [
             # Regions
             RuleData("Balcony (Post-Bosses) - Exit to Prefab House", trivial),
             RuleData("Prefab House - Exit to Balcony (Post-Bosses)", trivial),
-            RuleData("Prefab House - Exit to Sacred Grounds - B1", trivial),
+            RuleData("Prefab House - Exit to Sacred Grounds - B1",
+                     lambda state, player: state.has("Used Ma Pignon", player, 1)),
             RuleData("Prefab House - Save Point", trivial)
         ],
         [

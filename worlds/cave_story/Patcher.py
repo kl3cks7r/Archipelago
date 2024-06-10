@@ -98,20 +98,20 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
                 gfx = '<GIT1045'
             else:
                 gfx = ''
-            tsc_script = "\r\n<PRI<MSG<TUR" + gfx + "\r\n"+f"Got {player}'s ={item}=!"+"<WAI0025<NOD<END\r\n"
+            tsc_script = "\r\n<PRI<MSG<TUR" + gfx + "\r\n"+f"Got {player}'s ={item}=!"+"<WAI0025<NOD<END<EVE0015\r\n"
         else:
             if item < 100:
                 # Regular Items
                 tsc_script = f"\r\n<EVE{item:04d}\r\n"
             elif item == 100:
                 # Health Refill
-                tsc_script = f"\r\n<PRI<MSG<TURGot Health Refill<WAIT0025<NOD<END<LI+\r\n"
+                tsc_script = f"\r\n<PRI<MSG<TURGot Health Refill<WAIT0025<NOD<END<LI+<EVE0015\r\n"
             elif item == 101:
                 # Missile Refill
-                tsc_script = f"\r\n<PRI<MSG<TURGot Missile Refill<WAIT0025<NOD<END<AE+\r\n"
+                tsc_script = f"\r\n<PRI<MSG<TURGot Missile Refill<WAIT0025<NOD<END<AE+<EVE0015\r\n"
             elif item == 110:
                 # Black Wind Trap
-                tsc_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
+                tsc_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM<EVE0015\r\n"
         map_name, event_num = LOC_TSC_EVENTS[loc]
         scripts[map_name].append((event_num,tsc_script))
     # Victory stuff is super hacky atm
@@ -135,8 +135,10 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
         no_blocks = '<FL+1351'
     else:
         no_blocks = ''
+    # Flags for the starting point
     softlock_flags = '<MP+0040<MP+0043<MP+0032<MP+0033<MP+0036'
-    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{no_blocks}{softlock_flags}\r\n{start_room}\r\n'))
+    counter_flags = '<FL+4011<FL+4012<FL-4013<FL-4014<FL-4015<FL-4016'
+    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{counter_flags}{no_blocks}{softlock_flags}\r\n{start_room}\r\n'))
     # Victory flags
     if goal == 0:
         tsc_path = dest_dir.joinpath("Stage", "Oside.tsc")
@@ -177,7 +179,7 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
     random.seed(uuid.int)
     hash = ",".join([f"{num:04d}" for num in [random.randint(1, 38) for _ in range(5)]])
     dest_dir.joinpath("hash.txt").write_text(hash)
-    dest_dir.joinpath("uuid.txt").write_text(str({str(uuid)}))
+    dest_dir.joinpath("uuid.txt").write_text('{'+str(uuid)+'}')
 
 def patch_ap_sprite(path):
     with open(path.joinpath('ItemImage.bmp'), "rb") as f:

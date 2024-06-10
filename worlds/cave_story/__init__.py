@@ -21,7 +21,7 @@ class CaveStorySettings(Group):
         description = "Cave Story Executable"
         is_exe = True
 
-    game_exe: GameExe = GameExe("cave_story_exe")
+    game_exe: GameExe = GameExe("Doukutsu.exe")
 
 class CaveStoryWeb(WebWorld):
     tutorials = [
@@ -87,6 +87,11 @@ class CaveStoryWorld(World):
                 loc_ = CaveStoryLocation(self.player, loc_data.name, ALL_LOCATIONS[loc_data.name], region)
                 loc_.access_rule = lambda state, player=self.player, fn=loc_data.rule: fn(state, player)
                 region.locations.append(loc_)
+        if self.options.exclude_hell:
+            self.options.exclude_locations.value.update([
+                "Sacred Grounds - B1 - Ledge",
+                "Sacred Grounds - B3 - Hidden Chest"
+            ])
 
     def create_items(self) -> None:
         world_itempool: list[Item] = []

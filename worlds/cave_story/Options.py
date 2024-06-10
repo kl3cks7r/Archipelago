@@ -28,10 +28,15 @@ class StartingLocation(Choice):
     option_camp = 2
     default = 0
 
+class ExcludeHellLocations(Toggle):
+    """Prevents any progression items from appearing in Sacred Grounds"""
+    display_name = "Exclude Hell Locations"
+    default = True
+
 class Deathlink(Toggle):
     """When you die, everyone dies. Of course the reverse is true too."""
     display_name = "Deathlink"
-    default = 0
+    default = False
 
 @dataclass
 class CaveStoryOptions(PerGameCommonOptions):
@@ -39,4 +44,5 @@ class CaveStoryOptions(PerGameCommonOptions):
     starting_location: StartingLocation
     early_weapon: EarlyWeapon
     deathlink: Deathlink
+    exclude_hell: ExcludeHellLocations
     no_blocks: NoFallingBlocks

@@ -17,11 +17,11 @@ from CommonClient import CommonContext, server_loop, gui_enabled, ClientCommandP
 
 AP_OFFSET = 0xD00_000
 CS_LOCATION_OFFSET = 7300
-CS_COUNT_OFFSET = 7500
+CS_COUNT_OFFSET = 7778
 CS_DEATH_OFFSET = 7777
 LOCATIONS_NUM = 69
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
-VERSION = 'v0.2'
+VERSION = 'v0.4'
 
 class CSPacket(Enum):
     READINFO = 0
@@ -69,6 +69,9 @@ class CaveStoryContext(CommonContext):
             self.rcon_port = args.rcon_port
         else:
             self.rcon_port = 5451
+        uuid_path = self.game_dir.joinpath(self.platform, 'data', 'uuid.txt')
+        with open(uuid_path) as f:
+            self.uuid = f.read()
         self.seed_name = None
         self.slot_num = None
         self.syncing = False
@@ -88,10 +91,6 @@ class CaveStoryContext(CommonContext):
         if cmd == 'RoomInfo':
             self.seed_name = args['seed_name']
         elif cmd == 'Connected':
-            # uuid_path = self.game_dir.joinpath('data\\uuid.txt')
-            # with open(uuid_path) as f:
-            #     uuid = f.read()
-            # if uuid == '{00000000-0000-1111-0000-000000000000}':
             if not self.patched.is_set():
                 self.slot_num = args['slot']
                 Utils.async_start(self.send_msgs([
@@ -101,6 +100,7 @@ class CaveStoryContext(CommonContext):
                 ]))
                 self.slot_data = args['slot_data']
             else:
+                patch_game(self)
                 launch_game(self)
         elif cmd == 'LocationInfo':
             if not self.patched.is_set():
@@ -208,7 +208,7 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
                         ctx.death = True
                         if ctx.slot_data['deathlink']:
                             Utils.async_start(ctx.send_death(ctx))
-                    elif ctx.death:
+                    elif b == 0 and ctx.death:
                         logger.debug('Reloaded, permitting sync')
                         ctx.syncing = True
                         ctx.death = False
@@ -237,15 +237,18 @@ async def send_packet(ctx: CaveStoryContext, pkt: bytes, sync: bool=False):
     reader, writer = ctx.cs_streams
     writer.write(pkt)
     await asyncio.wait_for(writer.drain(), timeout=1.5)
-    header = await asyncio.wait_for(reader.read(5), timeout=5)
-    if header:
-        pkt_type = CSPacket(header[0])
-        length = int.from_bytes(header[1:4], 'little')
-        if length > 0:
-            data_bytes = await asyncio.wait_for(reader.read(length), timeout=5)
-            return decode_packet(ctx, pkt_type, data_bytes, sync)
-        else:
-            data_bytes = None
+    try:
+        header = await asyncio.wait_for(reader.read(5), timeout=5)
+        if header:
+            pkt_type = CSPacket(header[0])
+            length = int.from_bytes(header[1:4], 'little')
+            if length > 0:
+                data_bytes = await asyncio.wait_for(reader.read(length), timeout=5)
+                return decode_packet(ctx, pkt_type, data_bytes, sync)
+            else:
+                data_bytes = None
+    except Exception as e:
+        logger.debug(f"Failed to send packet: {e}")
 
 def teardown(ctx, msg):
     logger.debug(msg)
@@ -253,21 +256,25 @@ def teardown(ctx, msg):
     ctx.client_connected = False
 
 def patch_game(ctx):
-    locations = []
-    for loc, item in ctx.locations_info.items():
-        if item.player == ctx.slot:
-            player_name = None
-            item_name = item.item-AP_OFFSET
-        else:
-            player_name = ctx.player_names[item.player]
-            item_name = ctx.item_names[item.item]
-        locations.append([loc-AP_OFFSET,player_name,item_name])
     if ctx.slot_num and ctx.seed_name:
         cs_uuid = uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num))
     else:
         cs_uuid = None
-    logger.info(f"Game Dir: {ctx.game_dir}")
-    patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
+    if ctx.uuid != '{'+str(cs_uuid)+'}':
+        logger.info(f"UUID mismatch, patching files")
+        locations = []
+        for loc, item in ctx.locations_info.items():
+            if item.player == ctx.slot:
+                player_name = None
+                item_name = item.item-AP_OFFSET
+            else:
+                player_name = ctx.player_names[item.player]
+                item_name = ctx.item_names[item.item]
+            locations.append([loc-AP_OFFSET,player_name,item_name])
+        
+        patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
+    else:
+        logger.info(f"UUID matches, skipping patching")
     ctx.patched.set()
 
 def launch_game(ctx):
@@ -285,10 +292,8 @@ async def cave_story_connector(ctx: CaveStoryContext):
                 ctx.cs_streams = await asyncio.wait_for(asyncio.open_connection("localhost", ctx.rcon_port), timeout=4)
                 if ctx.cs_streams:
                     await send_packet(ctx, encode_packet(CSPacket.READINFO))
-                # TODO Check if running program's UUID, if mismatch tell user to restart CS and retry connection
-                pass
-                ctx.client_connected = True
-                logger.info("Successfully connected to Cave Story")
+                    ctx.client_connected = True
+                    logger.info("Successfully connected to Cave Story")
             elif ctx.cs_streams:
                 # Poll Cave Story for location flags
                 task = await send_packet(ctx, encode_packet(
@@ -306,13 +311,13 @@ async def cave_story_connector(ctx: CaveStoryContext):
                 if ctx.victory and not ctx.finished_game:
                     ctx.finished_game = True
                     await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])
-                # Pause between requests (and allow quiting!)
-                try:
-                    await asyncio.wait_for(ctx.exit_event.wait(), 1)
-                except asyncio.TimeoutError:
-                    continue
             else:
                 teardown(ctx, "Woah, something weird happened!")
+                continue
+            # Pause between requests (and allow quiting!)
+            try:
+                await asyncio.wait_for(ctx.exit_event.wait(), 1)
+            except asyncio.TimeoutError:
                 continue
         except TimeoutError:
             teardown(ctx, "Connection Timed Out, Trying Again")
@@ -322,6 +327,9 @@ async def cave_story_connector(ctx: CaveStoryContext):
             continue
         except (ConnectionResetError, ConnectionAbortedError):
             teardown(ctx, "Connection Lost, Trying Again")
+            continue
+        except (OSError,):
+            teardown(ctx, "Connection Failed, Trying Again")
             continue
 
 async def main(args):

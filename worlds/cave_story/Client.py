@@ -151,7 +151,7 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
     if pkt_type in (CSPacket.READINFO,):
         data = json.loads(data_bytes.decode())
         ctx.offsets = data['offsets']
-        logger.info(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
+        logger.debug(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
     elif pkt_type in (CSPacket.READFLAGS,):
         if sync:
             bit_count = 0
@@ -230,7 +230,7 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
         return data_bytes[0] == 2
     elif pkt_type in (CSPacket.ERROR,):
         data = data_bytes.decode()
-        logger.info(f"Cave Story Error: {data}")
+        logger.debug(f"Cave Story Error: {data}")
     return None
 
 async def send_packet(ctx: CaveStoryContext, pkt: bytes, sync: bool=False):
@@ -285,7 +285,7 @@ def launch_game(ctx):
 
 async def cave_story_connector(ctx: CaveStoryContext):
     await ctx.patched.wait()
-    logger.info("Starting Cave Story connector")
+    logger.debug("Starting Cave Story connector")
     while not ctx.exit_event.is_set():
         try:
             if not ctx.client_connected:
@@ -353,6 +353,7 @@ def launch():
     parser.add_argument('--rcon-port', default='5451', type=int, help='Port to use to communicate with CaveStory')
     args, rest = parser.parse_known_args()
 
+    Utils.init_logging("CaveStoryClient", exception_logger="Client")
     import colorama
     colorama.init()
     asyncio.run(main(args))

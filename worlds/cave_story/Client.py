@@ -69,9 +69,7 @@ class CaveStoryContext(CommonContext):
             self.rcon_port = args.rcon_port
         else:
             self.rcon_port = 5451
-        uuid_path = self.game_dir.joinpath(self.platform, 'data', 'uuid.txt')
-        with open(uuid_path) as f:
-            self.uuid = f.read()
+        self.uuid_path = self.game_dir.joinpath(self.platform, 'data', 'uuid.txt')
         self.seed_name = None
         self.slot_num = None
         self.syncing = False
@@ -234,19 +232,22 @@ def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync:
     return None
 
 async def send_packet(ctx: CaveStoryContext, pkt: bytes, sync: bool=False):
-    reader, writer = ctx.cs_streams
-    writer.write(pkt)
-    await asyncio.wait_for(writer.drain(), timeout=1.5)
     try:
-        header = await asyncio.wait_for(reader.read(5), timeout=5)
-        if header:
-            pkt_type = CSPacket(header[0])
-            length = int.from_bytes(header[1:4], 'little')
-            if length > 0:
-                data_bytes = await asyncio.wait_for(reader.read(length), timeout=5)
-                return decode_packet(ctx, pkt_type, data_bytes, sync)
-            else:
-                data_bytes = None
+        if ctx.cs_streams:
+            reader, writer = ctx.cs_streams
+            writer.write(pkt)
+            await asyncio.wait_for(writer.drain(), timeout=1.5)
+            header = await asyncio.wait_for(reader.read(5), timeout=5)
+            if header:
+                pkt_type = CSPacket(header[0])
+                length = int.from_bytes(header[1:4], 'little')
+                if length > 0:
+                    data_bytes = await asyncio.wait_for(reader.read(length), timeout=5)
+                    return decode_packet(ctx, pkt_type, data_bytes, sync)
+                else:
+                    data_bytes = None
+        else:
+            raise Exception("RCon terminated")
     except Exception as e:
         logger.debug(f"Failed to send packet: {e}")
 
@@ -260,7 +261,9 @@ def patch_game(ctx):
         cs_uuid = uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num))
     else:
         cs_uuid = None
-    if ctx.uuid != '{'+str(cs_uuid)+'}':
+    with open(ctx.uuid_path) as f:
+        cur_uuid = f.read()
+    if cur_uuid != '{'+str(cs_uuid)+'}':
         logger.info(f"UUID mismatch, patching files")
         locations = []
         for loc, item in ctx.locations_info.items():
@@ -271,8 +274,10 @@ def patch_game(ctx):
                 player_name = ctx.player_names[item.player]
                 item_name = ctx.item_names[item.item]
             locations.append([loc-AP_OFFSET,player_name,item_name])
-        
-        patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
+        try:
+            patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
+        except Exception as e:
+            logger.info(f"Patching Failed! {e}, please restart your client!")
     else:
         logger.info(f"UUID matches, skipping patching")
     ctx.patched.set()

@@ -21,7 +21,7 @@ CS_COUNT_OFFSET = 7778
 CS_DEATH_OFFSET = 7777
 LOCATIONS_NUM = 69
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
-VERSION = 'v0.4'
+VERSION = 'v0.5'
 
 class CSPacket(Enum):
     READINFO = 0
@@ -283,9 +283,12 @@ def patch_game(ctx):
     ctx.patched.set()
 
 def launch_game(ctx):
-    logger.info("Starting Cave Story")
+    logger.info("Launching Cave Story")
     exec_dir = ctx.game_dir.joinpath(ctx.platform)
-    subprocess.Popen([ctx.game_exe], cwd=exec_dir)
+    try:
+        subprocess.Popen([ctx.game_exe], cwd=exec_dir)
+    except Exception as e:
+        logger.info(f"Launching Failed! {e}, please launch the game manually!")
     ctx.syncing = True
 
 async def cave_story_connector(ctx: CaveStoryContext):

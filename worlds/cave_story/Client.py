@@ -145,7 +145,7 @@ def encode_packet(pkt_type: CSPacket, data = None, addr: int = None):
             data_bytes = data.to_bytes(1, 'little')
     return pkt_type.value.to_bytes(1, 'little') + len(data_bytes).to_bytes(4, 'little') + data_bytes
 
-def decode_packet(ctx: CaveStoryContext, pkt_type: int, data_bytes: bytes, sync: bool=False):
+def decode_packet(ctx: CaveStoryContext, pkt_type: CSPacket, data_bytes: bytes, sync: bool=False):
     if pkt_type in (CSPacket.READINFO,):
         data = json.loads(data_bytes.decode())
         ctx.offsets = data['offsets']
@@ -257,39 +257,41 @@ def teardown(ctx, msg):
     ctx.client_connected = False
 
 def patch_game(ctx):
-    if ctx.slot_num and ctx.seed_name:
-        cs_uuid = uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num))
-    else:
-        cs_uuid = None
-    with open(ctx.uuid_path) as f:
-        cur_uuid = f.read()
-    if cur_uuid != '{'+str(cs_uuid)+'}':
-        logger.info(f"UUID mismatch, patching files")
-        locations = []
-        for loc, item in ctx.locations_info.items():
-            if item.player == ctx.slot:
-                player_name = None
-                item_name = item.item-AP_OFFSET
-            else:
-                player_name = ctx.player_names[item.player]
-                item_name = ctx.item_names[item.item]
-            locations.append([loc-AP_OFFSET,player_name,item_name])
-        try:
-            patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
-        except Exception as e:
-            logger.info(f"Patching Failed! {e}, please restart your client!")
-    else:
-        logger.info(f"UUID matches, skipping patching")
-    ctx.patched.set()
+    try:
+        if ctx.slot_num and ctx.seed_name:
+            cs_uuid = uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num))
+        else:
+            cs_uuid = None
+        with open(ctx.uuid_path) as f:
+            cur_uuid = f.read()
+        if cur_uuid != '{'+str(cs_uuid)+'}':
+            logger.info(f"UUID mismatch, patching files")
+            locations = []
+            for loc, item in ctx.locations_info.items():
+                if item.player == ctx.slot:
+                    player_name = None
+                    item_name = item.item-AP_OFFSET
+                else:
+                    player_name = ctx.player_names[item.player]
+                    item_name = ctx.item_names[item.item]
+                locations.append([loc-AP_OFFSET,player_name,item_name])
+            
+                patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
+            
+        else:
+            logger.info(f"UUID matches, skipping patching")
+        ctx.patched.set()
+    except Exception as e:
+        logger.info(f"Patching Failed! {e}, please restart your client!")
 
 def launch_game(ctx):
     logger.info("Launching Cave Story")
     exec_dir = ctx.game_dir.joinpath(ctx.platform)
     try:
         subprocess.Popen([ctx.game_exe], cwd=exec_dir)
+        ctx.syncing = True
     except Exception as e:
         logger.info(f"Launching Failed! {e}, please launch the game manually!")
-    ctx.syncing = True
 
 async def cave_story_connector(ctx: CaveStoryContext):
     await ctx.patched.wait()

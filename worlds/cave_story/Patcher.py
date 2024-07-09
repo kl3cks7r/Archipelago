@@ -94,11 +94,12 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
     scripts = defaultdict(list)
     for loc, player, item in locations:
         if player:
+            player_clean = player.replace('#', '*').replace('<', '*')
             if platform == 'freeware':
                 gfx = '<GIT1045'
             else:
                 gfx = ''
-            tsc_script = "\r\n<PRI<MSG<TUR" + gfx + "\r\n"+f"Got {player}'s ={item}=!"+"<WAI0025<NOD<END<EVE0015\r\n"
+            tsc_script = "\r\n<PRI<MSG<TUR" + gfx + "\r\n"+f"Got {player_clean}'s ={item}=!"+"<WAI0025<NOD<END<EVE0015\r\n"
         else:
             if item < 100:
                 # Regular Items

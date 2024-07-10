@@ -307,7 +307,7 @@ async def cave_story_connector(ctx: CaveStoryContext):
     while not ctx.exit_event.is_set():
         try:
             if not ctx.client_connected:
-                ctx.cs_streams = await asyncio.wait_for(asyncio.open_connection("localhost", ctx.rcon_port), timeout=4)
+                ctx.cs_streams = await asyncio.wait_for(asyncio.open_connection("localhost", ctx.rcon_port), timeout=1)
                 if ctx.cs_streams:
                     await send_packet(ctx, encode_packet(CSPacket.READINFO))
                     ctx.client_connected = True
@@ -333,21 +333,11 @@ async def cave_story_connector(ctx: CaveStoryContext):
                 teardown(ctx, "Woah, something weird happened!")
                 continue
             # Pause between requests (and allow quiting!)
-            try:
-                await asyncio.wait_for(ctx.exit_event.wait(), 1)
-            except asyncio.TimeoutError:
-                continue
+            await asyncio.wait_for(ctx.exit_event.wait(), 1)
         except (TimeoutError, asyncio.TimeoutError):
-            teardown(ctx, "Connection Timed Out, Trying Again")
             continue
-        except ConnectionRefusedError:
-            teardown(ctx, "Connection Refused, Trying Again")
-            continue
-        except (ConnectionResetError, ConnectionAbortedError):
+        except (OSError, ConnectionRefusedError, ConnectionResetError, ConnectionAbortedError):
             teardown(ctx, "Connection Lost, Trying Again")
-            continue
-        except (OSError,):
-            teardown(ctx, "Connection Failed, Trying Again")
             continue
         except (asyncio.CancelledError,):
             teardown(ctx, "Connection Canceled")

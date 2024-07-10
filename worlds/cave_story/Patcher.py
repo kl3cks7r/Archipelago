@@ -9,23 +9,23 @@ import random
 from collections import defaultdict
 
 LOC_TSC_EVENTS = ( # Index is location ID, tuple is TSC Event 
-    ('Eggs','0403'), ('Eggs','0404'), ('Egg6','0201'), ('EggR','0301'),
-    ('Weed','0700'), ('Weed','0701'), ('Weed','0303'), ('Weed','0800'),
-    ('Weed','0801'), ('Weed','0702'), ('Santa','0501'), ('Santa','0302'),
-    ('Chako','0212'), ('Malco','0350'), ('WeedB','0301'), ('WeedD','0305'),
-    ('Frog','0300'), ('MazeB','0502'), ('MazeS','0202'), ('Almond','0243'),
-    ('Almond','1111'), ('Pool','0412'), ('MazeI','0301'), ('MazeA','0502'),
-    ('MazeA','0512'), ('MazeA','0522'), ('MazeO','0305'), ('MazeO','0401'),
-    ('MazeD','0201'), ('Priso2','0300'), ('Hell1','0401'), ('Hell3','0400'),
-    ('Cave','0401'), ('Pole','0202'), ('Pole','0303'), ('Mimi','0202'),
-    ('Plant','0401'), ('Pool','0301'), ('Comu','0303'), ('Cemet','0301'),
-    ('Cemet','0202'), ('Mapi','0202'), ('Mapi','0501'), ('Pens1','0652'),
-    ('Cent','0268'), ('Cent','0324'), ('Cent','0417'), ('Cent','0501'),
-    ('Cent','0452'), ('Itoh','0405'), ('Lounge','0204'), ('Jail1','0301'),
-    ('Momo','0201'), ('Eggs2','0321'), ('EggR2','0303'), ('Little','0204'),
-    ('Clock','0300'), ('Sand','0502'), ('Sand','0503'), ('Sand','0423'),
-    ('Sand','0422'), ('Sand','0421'), ('Curly','0518'), ('CurlyS','0401'),
-    ('CurlyS','0421'), ('Jenka2','0221'), ('Dark','0401'), ('Gard','0602'),
+    ('Eggs','0403','0400'), ('Eggs','0404','0401'), ('Egg6','0201','0200'), ('EggR','0301','0300'),
+    ('Weed','0700','0200'), ('Weed','0701','0305'), ('Weed','0303','0302'), ('Weed','0800',''),
+    ('Weed','0801','0236'), ('Weed','0702',''), ('Santa','0501',''), ('Santa','0302',''),
+    ('Chako','0212',''), ('Malco','0350',''), ('WeedB','0301','0300'), ('WeedD','0305','0304'),
+    ('Frog','0300','0200'), ('MazeB','0502','0501'), ('MazeS','0202','0200'), ('Almond','0243','0240'),
+    ('Almond','1111',''), ('Pool','0412',''), ('MazeI','0301','0300'), ('MazeA','0502','0500'),
+    ('MazeA','0512','0510'), ('MazeA','0522','0520'), ('MazeO','0305',''), ('MazeO','0401','0400'),
+    ('MazeD','0201',''), ('Priso2','0300',''), ('Hell1','0401','0400'), ('Hell3','0400','0390'),
+    ('Cave','0401','0400'), ('Pole','0202','0200'), ('Pole','0303',''), ('Mimi','0202','0200'),
+    ('Plant','0401','0400'), ('Pool','0301','0300'), ('Comu','0303',''), ('Cemet','0301','0300'),
+    ('Cemet','0202',''), ('Mapi','0202','0200'), ('Mapi','0501',''), ('Pens1','0652',''),
+    ('Cent','0268','0265'), ('Cent','0324',''), ('Cent','0417','0415'), ('Cent','0501','0500'),
+    ('Cent','0452',''), ('Itoh','0405',''), ('Lounge','0204',''), ('Jail1','0301',''),
+    ('Momo','0201',''), ('Eggs2','0321','0320'), ('EggR2','0303',''), ('Little','0204',''),
+    ('Clock','0300','0200'), ('Sand','0502','0500'), ('Sand','0503','0501'), ('Sand','0423','0412'),
+    ('Sand','0422','0402'), ('Sand','0421','0401'), ('Curly','0518',''), ('CurlyS','0401','0400'),
+    ('CurlyS','0421','0420'), ('Jenka2','0221',''), ('Dark','0401','0400'), ('Gard','0602',''),
 )
 
 AP_SPRITE = [
@@ -113,8 +113,9 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
             elif item == 110:
                 # Black Wind Trap
                 tsc_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM<EVE0015\r\n"
-        map_name, event_num = LOC_TSC_EVENTS[loc]
-        scripts[map_name].append((event_num,tsc_script))
+        map_name, tsc_event_num, npc_event_num = LOC_TSC_EVENTS[loc]
+        new_npc = 167 # haha booster bc funny
+        scripts[map_name].append((tsc_event_num,tsc_script,npc_event_num,new_npc))
     # Victory stuff is super hacky atm
     # 6003: Bad | 6000: Normal | 6001: Best | 6002: All Bosses | 6004: 100%
     # Goal flags
@@ -139,7 +140,7 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
     # Flags for the starting point
     softlock_flags = '<MP+0040<MP+0043<MP+0032<MP+0033<MP+0036'
     counter_flags = '<FL+4011<FL+4012<FL-4013<FL-4014<FL-4015<FL-4016'
-    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{counter_flags}{no_blocks}{softlock_flags}\r\n{start_room}\r\n'))
+    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{counter_flags}{no_blocks}{softlock_flags}\r\n{start_room}\r\n','',0))
     # Victory flags
     if goal == 0:
         tsc_path = dest_dir.joinpath("Stage", "Oside.tsc")
@@ -158,12 +159,23 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
     for map_name, events in scripts.items():
         tsc_path = dest_dir.joinpath("Stage", f"{map_name}.tsc")
         tsc = Tsc(decode_tsc(tsc_path))
-        for event, script in events:
+        pxe_path = dest_dir.joinpath("Stage", f"{map_name}.pxe")
+        npcs = decode_pxe(pxe_path)
+        # print('#'*32)
+        # print(npcs)
+        for tsc_event, script, npc_event, npc_num in events:
             try:
-                tsc.set_event(event,script)
+                tsc.set_event(tsc_event,script)
+                if npc_event != '':
+                    for npc in npcs:
+                        if npc_event == npc.event_number:
+                            print(f"Set NPC {npc.event_number} in {map_name}")
+                            npc.type = npc_num
             except KeyError:
-                logger.debug(f"Error finding Event #{event} in {map_name}.tsc")
+                logger.debug(f"Error finding Event #{tsc_event} in {map_name}.tsc")
+        # print(npcs)
         encode_tsc(tsc_path,tsc.get_string())
+        encode_pxe(pxe_path,npcs)
     # Death detection
     tsc_path = dest_dir.joinpath("Head.tsc")
     tsc = Tsc(decode_tsc(tsc_path))

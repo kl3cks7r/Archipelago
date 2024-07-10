@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 import json
 from typing import Tuple
 from enum import Enum
@@ -98,12 +99,12 @@ class CaveStoryContext(CommonContext):
                 ]))
                 self.slot_data = args['slot_data']
             else:
-                patch_game(self)
-                launch_game(self)
+                if patch_game(self):
+                    launch_game(self)
         elif cmd == 'LocationInfo':
             if not self.patched.is_set():
-                patch_game(self)
-                launch_game(self)
+                if patch_game(self):
+                    launch_game(self)
         elif cmd == 'ReceivedItems':
             if self.patched.is_set():
                 self.syncing = True
@@ -247,14 +248,15 @@ async def send_packet(ctx: CaveStoryContext, pkt: bytes, sync: bool=False):
                 else:
                     data_bytes = None
         else:
-            raise Exception("RCon terminated")
+            teardown(ctx,"RCon terminated")
     except Exception as e:
-        logger.debug(f"Failed to send packet: {e}")
+        teardown(ctx,f"Failed to send packet: {e}")
 
 def teardown(ctx, msg):
     logger.debug(msg)
     ctx.cs_streams = None
     ctx.client_connected = False
+    ctx.patched.clear()
 
 def patch_game(ctx):
     try:
@@ -275,14 +277,15 @@ def patch_game(ctx):
                     player_name = ctx.player_names[item.player]
                     item_name = ctx.item_names[item.item]
                 locations.append([loc-AP_OFFSET,player_name,item_name])
-            
-                patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
-            
+            patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
         else:
             logger.info(f"UUID matches, skipping patching")
         ctx.patched.set()
+        return True
     except Exception as e:
-        logger.info(f"Patching Failed! {e}, please restart your client!")
+        logger.info(f"Patching Failed! {e}, please reconnect to retry!")
+        logger.info(f"{traceback.print_exc()}")
+        return False
 
 def launch_game(ctx):
     logger.info("Launching Cave Story")
@@ -294,8 +297,13 @@ def launch_game(ctx):
         logger.info(f"Launching Failed! {e}, please launch the game manually!")
 
 async def cave_story_connector(ctx: CaveStoryContext):
-    await ctx.patched.wait()
-    logger.debug("Starting Cave Story connector")
+    while not ctx.exit_event.is_set():
+            try:
+                await asyncio.wait_for(ctx.patched.wait(), timeout=1)
+                logger.debug("Starting Cave Story connector")
+                break
+            except:
+                continue
     while not ctx.exit_event.is_set():
         try:
             if not ctx.client_connected:
@@ -329,7 +337,7 @@ async def cave_story_connector(ctx: CaveStoryContext):
                 await asyncio.wait_for(ctx.exit_event.wait(), 1)
             except asyncio.TimeoutError:
                 continue
-        except TimeoutError:
+        except (TimeoutError, asyncio.TimeoutError):
             teardown(ctx, "Connection Timed Out, Trying Again")
             continue
         except ConnectionRefusedError:
@@ -340,6 +348,9 @@ async def cave_story_connector(ctx: CaveStoryContext):
             continue
         except (OSError,):
             teardown(ctx, "Connection Failed, Trying Again")
+            continue
+        except (asyncio.CancelledError,):
+            teardown(ctx, "Connection Canceled")
             continue
 
 async def main(args):

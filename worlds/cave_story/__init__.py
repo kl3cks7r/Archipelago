@@ -96,6 +96,10 @@ class CaveStoryWorld(World):
     def create_items(self) -> None:
         world_itempool: list[Item] = []
         # Exclude preselected items if it becomes a feature. Must be replaced with junk items
+        # (item_name, item_data) = ("Refill Station", FILLER_ITEMS["Refill Station"])
+        # for _i in range(3):
+        #     world_itempool.append(CaveStoryItem(
+        #         item_name, item_data.classification, item_data.item_id, self.player))
         for (item_name, item_data) in ALL_ITEMS.items():
             for _i in range(item_data.cnt):
                 world_itempool.append(CaveStoryItem(

@@ -92,29 +92,43 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
         raise Exception("Error copying base files. Ensure the directory is not read-only, and that Doukutsu.exe is closed")
 
     scripts = defaultdict(list)
+    booster_placed = False
     for loc, player, item in locations:
         if player:
-            player_clean = player.replace('#', '*').replace('<', '*')
+            for c in ('#','<','='):
+                player = player.replace(c, '?')
+                item = item.replace(c, '?')
             if platform == 'freeware':
                 gfx = '<GIT1045'
             else:
                 gfx = ''
-            tsc_script = "\r\n<PRI<MSG<TUR" + gfx + "\r\n"+f"Got {player_clean}'s ={item}=!"+"<WAI0025<NOD<END<EVE0015\r\n"
+            tsc_script = "\r\n<PRI<MSG<TUR" + gfx + "\r\n"+f"Got {player}'s ={item}=!"+"<WAI0025<NOD<END<EVE0015\r\n"
         else:
             if item < 100:
                 # Regular Items
                 tsc_script = f"\r\n<EVE{item:04d}\r\n"
-            elif item == 100:
-                # Health Refill
-                tsc_script = f"\r\n<PRI<MSG<TURGot Health Refill<WAIT0025<NOD<END<LI+<EVE0015\r\n"
-            elif item == 101:
-                # Missile Refill
-                tsc_script = f"\r\n<PRI<MSG<TURGot Missile Refill<WAIT0025<NOD<END<AE+<EVE0015\r\n"
             elif item == 110:
                 # Black Wind Trap
                 tsc_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM<EVE0015\r\n"
         map_name, tsc_event_num, npc_event_num = LOC_TSC_EVENTS[loc]
-        new_npc = 167 # haha booster bc funny
+        # Health Canister
+        if item in (12,13,14,):
+            new_npc = 32
+        # Puppy
+        elif item == 20:
+            new_npc = 130
+        # Dead Booster
+        elif not booster_placed and item == 68:
+            new_npc = 167
+            booster_placed = True
+        # Health Refill
+        elif item == 17:
+            new_npc = 17
+        else:
+            npc_event_num = ''
+            new_npc = 0
+        if npc_event_num != '':
+            logger.debug(f"Attempting to set NPC {npc_event_num} in {map_name} to {new_npc}")
         scripts[map_name].append((tsc_event_num,tsc_script,npc_event_num,new_npc))
     # Victory stuff is super hacky atm
     # 6003: Bad | 6000: Normal | 6001: Best | 6002: All Bosses | 6004: 100%
@@ -161,19 +175,18 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
         tsc = Tsc(decode_tsc(tsc_path))
         pxe_path = dest_dir.joinpath("Stage", f"{map_name}.pxe")
         npcs = decode_pxe(pxe_path)
-        # print('#'*32)
-        # print(npcs)
         for tsc_event, script, npc_event, npc_num in events:
             try:
                 tsc.set_event(tsc_event,script)
                 if npc_event != '':
                     for npc in npcs:
-                        if npc_event == npc.event_number:
-                            print(f"Set NPC {npc.event_number} in {map_name}")
-                            npc.type = npc_num
+                        if npc_event == f"{npc.event_number:04}":
+                            # If NPC is a Refill Station or the replaced NPC is Sparkle
+                            if npc_num in (17,) or npc.type in (70,):
+                                logger.debug(f"Set NPC {npc.event_number:04}({npc.type}) in {map_name} to {npc_num}")
+                                npc.type = npc_num
             except KeyError:
                 logger.debug(f"Error finding Event #{tsc_event} in {map_name}.tsc")
-        # print(npcs)
         encode_tsc(tsc_path,tsc.get_string())
         encode_pxe(pxe_path,npcs)
     # Death detection

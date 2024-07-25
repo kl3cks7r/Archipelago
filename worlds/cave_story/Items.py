@@ -78,8 +78,7 @@ ALL_ITEMS: Dict[str, CaveStoryItemData] = {
 }
 
 FILLER_ITEMS: Dict[str, CaveStoryItemData] = {
-    "Health Refill": CaveStoryItemData(ItemClassification.filler, base_id + 100),
-    "Missile Refill": CaveStoryItemData(ItemClassification.filler, base_id + 101),
+    "Refill Station": CaveStoryItemData(ItemClassification.filler, base_id + 17),
 }
 
 TRAP_ITEMS: Dict[str, CaveStoryItemData] = {

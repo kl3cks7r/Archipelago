@@ -204,8 +204,7 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
         """Force a repatch"""
         if os.path.exists(self.ctx.uuid_path):
             os.remove(self.ctx.uuid_path)
-        patch_game(self.ctx)
-        return True
+        return patch_game(self.ctx)
 
 class CaveStoryContext(CommonContext):
     command_processor: int = CaveStoryClientCommandProcessor
@@ -351,28 +350,23 @@ def game_running(ctx):
 async def game_ready(ctx):
     if game_running(ctx) and ctx.cs_streams:
         status = await send_packet(ctx, encode_packet(CSPacket.READSTATE))
-        return int(status[0]) in range(2,8,1)
-    else:
-        return False
+        if status:
+            return int(status[0]) in range(2,8,1)
+    return False
 
 def patch_game(ctx):
     try:
-        if ctx.needs_patch():
-            logger.info(f"UUID mismatch, patching files")
-            locations = []
-            for loc, item in ctx.locations_info.items():
-                if item.player == ctx.slot:
-                    player_name = None
-                    item_name = item.item-AP_OFFSET
-                else:
-                    player_name = ctx.player_names[item.player]
-                    item_name = ctx.item_names[item.item]
-                locations.append([loc-AP_OFFSET,player_name,item_name])
-            cs_uuid = '{'+str(uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num)))+'}'
-            patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
-        else:
-            logger.info(f"UUID matches, skipping patching")
-        ctx.patched.set()
+        locations = []
+        for loc, item in ctx.locations_info.items():
+            if item.player == ctx.slot:
+                player_name = None
+                item_name = item.item-AP_OFFSET
+            else:
+                player_name = ctx.player_names[item.player]
+                item_name = ctx.item_names[item.item]
+            locations.append([loc-AP_OFFSET,player_name,item_name])
+        cs_uuid = '{'+str(uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num)))+'}'
+        patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
         return True
     except Exception as e:
         logger.info(f"Patching Failed! {e}, please reconnect to retry!")
@@ -399,6 +393,8 @@ async def cr_connect(ctx):
             if ctx.needs_patch():
                 ctx.cs_streams = None
                 logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
+                while game_running():
+                    await asyncio.sleep(3)
             else:
                 if ctx.cs_streams:
                     # await not ctx.cs_streams
@@ -409,25 +405,31 @@ async def cr_connect(ctx):
                         if not ctx.cs_streams:
                             raise Exception
                         data_bytes = await send_packet(ctx, encode_packet(CSPacket.READINFO))
+                        if not data_bytes:
+                            raise Exception
                         data = json.loads(data_bytes.decode())
                         ctx.offsets = data['offsets']
                         logger.debug(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
                     except:
-                        logger.info("Failed to currently running game, retrying in 5 seconds")
+                        logger.info("Failed to connect to currently running game, retrying in 5 seconds")
                         await asyncio.sleep(5)
+        if ctx.needs_patch():
+            logger.info(f"UUID mismatch, patching files")
+            patch_game(ctx)
         await asyncio.sleep(1)
         
 
 async def cr_receivables(ctx):
     # await ctx.send_msgs([{"cmd": "Sync"}])
     while not ctx.exit_event.is_set():
-        # ~~~ await ctx.cs_streams exists
         if not ctx.death and await game_ready(ctx):
             logger.debug("Attempting to sync with Cave Story")
             data_bytes = await send_packet(ctx, encode_packet(
                 CSPacket.READFLAGS,
                 range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
             ))
+            if not data_bytes:
+                continue
             bit_count = 0
             verify_script = ''
             for i, b in enumerate(data_bytes):
@@ -473,12 +475,13 @@ async def cr_receivables(ctx):
 
 async def cr_sendables(ctx):
     while not ctx.exit_event.is_set():
-        # ~~~ await ctx.cs_streams exists
         if await game_ready(ctx):
             data_bytes = await send_packet(ctx, encode_packet(
                 CSPacket.READFLAGS,
                 [*range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM),7777]
             ))
+            if not data_bytes:
+                continue
             locations_checked = []
             for i, b in enumerate(data_bytes):
                 if i == LOCATIONS_NUM:
@@ -509,19 +512,20 @@ async def cr_sendables(ctx):
 
 async def cr_autotab(ctx):
     while not ctx.exit_event.is_set():
-        # ~~~ await ctx.cs_streams exists
         if await game_ready(ctx):
             data_bytes = await send_packet(ctx, encode_packet(
                 CSPacket.READSTATE,
                 1
             ))
+            if not data_bytes:
+                continue
             try:
                 autotab = CS_TRACKER_AUTOTAB_MAP[data_bytes.decode()]
             except KeyError:
                 autotab = CSTrackerAutoTab.UNDEFINED
             if ctx.poptracker_curlevel != autotab:
                 ctx.poptracker_curlevel = autotab
-                logger.info(f"Switching Tab: {autotab.value}")
+                logger.debug(f"Switching Tab: {autotab.value}")
         await asyncio.sleep(1)
 
 async def main(args):

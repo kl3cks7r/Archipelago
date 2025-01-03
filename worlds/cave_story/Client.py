@@ -11,7 +11,14 @@ import uuid
 from .Patcher import *
 from . import CaveStoryWorld
 
+from kivy.clock import Clock
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.metrics import dp
+
 import Utils
+# from Utils import is_windows
+is_windows = True
 
 from CommonClient import CommonContext, ClientCommandProcessor, \
     get_base_parser, server_loop, gui_enabled, logger
@@ -195,16 +202,27 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
             Utils.async_start(send_packet(self.ctx, encode_packet(CSPacket.RUNTSC, script)))
             return True
         return False
+    
     def _cmd_cs_sync(self) -> bool:
         """Force a sync to occur"""
         # Utils.async_start(connector_receive_items(self.ctx)) TODO
         return True
     
-    def _cmd_cs_repatch(self) -> bool:
-        """Force a repatch"""
-        if os.path.exists(self.ctx.uuid_path):
-            os.remove(self.ctx.uuid_path)
-        return patch_game(self.ctx)
+    def _cmd_cs_platform(self, platform) -> bool:
+        """Change the platform for Cave Story"""
+        if platform in ('freeware','tweaked'):
+            CaveStoryWorld.settings.game_platform = platform
+            self.ctx.game_platform = platform
+            if self.ctx.game_platform == 'freeware':
+                logger.info(f"Changed Cave Story platform to 'freeware'")
+                self.ctx.cs_button.text="Launch Cave Story Freeware"
+            elif self.ctx.game_platform == 'tweaked':
+                logger.info(f"Changed Cave Story platform to 'tweaked'")
+                self.ctx.cs_button.text="Launch Cave Story Tweaked"
+        else:
+            logger.info(f"Unknown platform, please input 'freeware' or 'tweaked'")
+            return False
+        
 
 class CaveStoryContext(CommonContext):
     command_processor: int = CaveStoryClientCommandProcessor
@@ -217,12 +235,10 @@ class CaveStoryContext(CommonContext):
         self.send_lock = asyncio.Lock()
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
-        self.game_exe = Path(CaveStoryWorld.settings.game_exe).expanduser()
-        self.game_dir = self.game_exe.parents[1]
+        self.game_dir = Path(CaveStoryWorld.settings.game_dir).expanduser()
+        self.game_platform = CaveStoryWorld.settings.game_platform
         self.game_process = None
-        self.platform = self.game_exe.parts[-2]
         self.rcon_port = args.rcon_port
-        self.uuid_path = self.game_dir.joinpath(self.platform, 'data', 'uuid.txt')
         self.seed_name = None
         self.slot_num = None
         self.slot_data = None
@@ -231,6 +247,7 @@ class CaveStoryContext(CommonContext):
         self.poptracker_curlevel: CSTrackerAutoTab = CSTrackerAutoTab.UNDEFINED
         self.poptracker_events = [False] * len(CSTrackerEvent)
         logger.debug(f'Running version {VERSION}')
+        Clock.schedule_once(self._add_cs_gui, 0)
 
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
@@ -243,8 +260,12 @@ class CaveStoryContext(CommonContext):
             self.seed_name = args['seed_name']
         elif cmd == 'Connected':
             self.slot_num = args['slot']
-            self.sync_server()
             self.slot_data = args['slot_data']
+            Utils.async_start(self.send_msgs([
+                {"cmd": "LocationScouts",
+                "locations": self.server_locations,
+                "create_as_hint": 0}
+            ]))
 
     def on_deathlink(self, data):
         super().on_deathlink(data)
@@ -263,26 +284,32 @@ class CaveStoryContext(CommonContext):
         self.ui = CaveStoryManager(self)
         self.ui_task = asyncio.create_task(self.ui.async_run(), name="UI")
 
-    def sync_server(self):
-        Utils.async_start(self.send_msgs([
-            {"cmd": "LocationScouts",
-            "locations": self.server_locations,
-            "create_as_hint": 0}
-        ]))
+    def _add_cs_gui(self, _dt):
+        # Create Cave Story button
+        extra_layout = BoxLayout(
+            orientation="horizontal",
+            size_hint_y=None,
+            height=dp(40),
+        )
+        if self.game_platform == 'freeware':
+            self.cs_button = Button(text="Launch Cave Story Freeware")
+        elif self.game_platform == 'tweaked':
+            self.cs_button = Button(text="Launch Cave Story Tweaked")
+        self.cs_button.bind(on_press=lambda inst: launch_game(self))
+        # Insert it in the UI
+        extra_layout.add_widget(self.cs_button)
+        self.ui.grid.add_widget(extra_layout, index=0)
         
     def needs_patch(self) -> bool:
         if self.slot_num and self.seed_name:
             server_uuid = '{'+str(uuid.uuid3(BASE_UUID,self.seed_name+str(self.slot_num)))+'}'
             try:
-                with open(self.uuid_path) as f:
+                with open(self.game_dir.joinpath('pre_edited_cs', self.game_platform, 'data', 'uuid.txt')) as f:
                     client_uuid = f.read()
             except:
                 client_uuid = BASE_UUID
-            # client_uuid = BASE_UUID # Uncomment to make it always patch
             return client_uuid != server_uuid
-        else:
-            return False
-        
+        return False
 
 def encode_packet(pkt_type: CSPacket, data = None, addr: int = None):
     if not data:
@@ -348,7 +375,7 @@ def game_running(ctx):
     return ctx.game_process and ctx.game_process.poll() is None
 
 async def game_ready(ctx):
-    if game_running(ctx) and ctx.cs_streams:
+    if game_running(ctx) and ctx.cs_streams and ctx.server and ctx.server.socket and not ctx.server.socket.closed:
         status = await send_packet(ctx, encode_packet(CSPacket.READSTATE))
         if status:
             return int(status[0]) in range(2,8,1)
@@ -366,7 +393,7 @@ def patch_game(ctx):
                 item_name = ctx.item_names[item.item]
             locations.append([loc-AP_OFFSET,player_name,item_name])
         cs_uuid = '{'+str(uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num)))+'}'
-        patch_files(locations, cs_uuid, ctx.game_dir, ctx.platform, ctx.slot_data, logger)
+        patch_files(locations, cs_uuid, ctx.game_dir, ctx.game_platform, ctx.slot_data, logger)
         return True
     except Exception as e:
         logger.info(f"Patching Failed! {e}, please reconnect to retry!")
@@ -375,10 +402,22 @@ def patch_game(ctx):
 
 def launch_game(ctx):
     if not game_running(ctx):
+        if ctx.needs_patch():
+            logger.info(f"UUID mismatch, patching files")
+            patch_game(ctx)
         logger.info("Launching Cave Story")
-        exec_dir = ctx.game_dir.joinpath(ctx.platform)
+        exe_dir = ctx.game_dir.joinpath('pre_edited_cs', ctx.game_platform)
+        if ctx.game_platform == "freeware":
+            exe_path = exe_dir.joinpath('Doukutsu.exe')
+        elif ctx.game_platform == "tweaked":
+            if is_windows:
+                exe_path = exe_dir.joinpath('CSTweaked.exe')
+            else:
+                exe_path = exe_dir.joinpath('CSTweaked')
+        else:
+            raise Exception("Unknown Platform!")
         try:
-            ctx.game_process = subprocess.Popen([ctx.game_exe], cwd=exec_dir)
+            ctx.game_process = subprocess.Popen([exe_path], cwd=exe_dir)
             return True
         except Exception as e:
             logger.info(f"Launching Failed: {e}")
@@ -390,32 +429,28 @@ def launch_game(ctx):
 async def cr_connect(ctx):
     while not ctx.exit_event.is_set():
         if game_running(ctx):
-            if ctx.needs_patch():
-                ctx.cs_streams = None
-                logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
-                while game_running():
-                    await asyncio.sleep(3)
+            if ctx.cs_streams:
+                # await not ctx.cs_streams
+                pass
             else:
-                if ctx.cs_streams:
-                    # await not ctx.cs_streams
-                    pass
-                else:
-                    try:
-                        ctx.cs_streams = await asyncio.open_connection("localhost", ctx.rcon_port)
-                        if not ctx.cs_streams:
-                            raise Exception
-                        data_bytes = await send_packet(ctx, encode_packet(CSPacket.READINFO))
-                        if not data_bytes:
-                            raise Exception
-                        data = json.loads(data_bytes.decode())
-                        ctx.offsets = data['offsets']
-                        logger.debug(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
-                    except:
-                        logger.info("Failed to connect to currently running game, retrying in 5 seconds")
-                        await asyncio.sleep(5)
-        if ctx.needs_patch():
-            logger.info(f"UUID mismatch, patching files")
-            patch_game(ctx)
+                try:
+                    ctx.cs_streams = await asyncio.open_connection("localhost", ctx.rcon_port)
+                    if not ctx.cs_streams:
+                        raise Exception
+                    data_bytes = await send_packet(ctx, encode_packet(CSPacket.READINFO))
+                    if not data_bytes:
+                        raise Exception
+                    data = json.loads(data_bytes.decode())
+                    ctx.offsets = data['offsets']
+                    logger.debug(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
+                    if ctx.needs_patch():
+                        ctx.cs_streams = None
+                        logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
+                        while game_running(ctx):
+                            await asyncio.sleep(3)
+                except Exception as e:
+                    logger.info(f"Failed to connect to currently running game: {e}, retrying in 5 seconds")
+                    await asyncio.sleep(5)
         await asyncio.sleep(1)
         
 
@@ -536,10 +571,10 @@ async def main(args):
         ctx.run_gui()
     ctx.run_cli()
     # Client tasks
-    client_coroutines = [cr_connect(ctx), cr_receivables(ctx), cr_sendables(ctx), cr_autotab(ctx)]
+    coroutines = [server_task, cr_connect(ctx), cr_receivables(ctx), cr_sendables(ctx), cr_autotab(ctx)]
     # Run everything
     try:
-        await asyncio.gather(server_task, *client_coroutines)
+        await asyncio.gather(*coroutines)
     except asyncio.CancelledError:
         pass
     finally:

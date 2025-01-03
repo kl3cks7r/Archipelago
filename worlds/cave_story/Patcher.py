@@ -84,8 +84,8 @@ class Npc:
 
 def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logger):    
     logger.info("Copying base files...")
-    base_dir = game_dir.joinpath("data")
-    dest_dir = game_dir.joinpath(platform,"data")
+    base_dir = game_dir.joinpath('pre_edited_cs', "data")
+    dest_dir = game_dir.joinpath('pre_edited_cs', platform,"data")
     try:
         shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True, ignore=(lambda _dir, files: [file for file in files if file[-3:] in ('txt')]))
     except shutil.Error:

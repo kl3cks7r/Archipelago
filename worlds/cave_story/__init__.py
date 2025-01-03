@@ -1,6 +1,6 @@
 from typing import Any, Mapping, ClassVar
 from BaseClasses import CollectionState, Region, Tutorial, Item
-from settings import Group, FilePath
+from settings import Group, FolderPath
 from worlds.AutoWorld import WebWorld, World
 from worlds.LauncherComponents import Component, components, Type, launch_subprocess
 from .Options import CaveStoryOptions
@@ -17,11 +17,11 @@ def launch_client():
 components.append(Component("Cave Story Client", "CaveStoryClient", func=launch_client, component_type=Type.CLIENT))
 
 class CaveStorySettings(Group):
-    class GameExe(FilePath):
-        description = "Cave Story Executable"
-        is_exe = True
+    class GameDir(FolderPath):
+        description = "Cave Story Randomizer Root Directory"
 
-    game_exe: GameExe = GameExe("Doukutsu.exe")
+    game_dir: GameDir = GameDir("C:\ProgramData\Archipelago\cave-story-randomizer-X.X.X")
+    game_platform: str = "freeware"
 
 class CaveStoryWeb(WebWorld):
     tutorials = [

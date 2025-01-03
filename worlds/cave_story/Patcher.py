@@ -109,7 +109,7 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
                 tsc_script = f"\r\n<EVE{item:04d}\r\n"
             elif item == 110:
                 # Black Wind Trap
-                tsc_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM<EVE0015\r\n"
+                tsc_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAI0025<NOD<END<ZAM<EVE0015\r\n"
         map_name, tsc_event_num, npc_event_num = LOC_TSC_EVENTS[loc]
         # Health Canister
         if item in (12,13,14,):

@@ -26,7 +26,7 @@ class StartingLocation(Choice):
     option_start_point = 0
     option_arthurs_house = 1
     option_camp = 2
-    default = 0
+    default = 1
 
 class ExcludeHellLocations(Toggle):
     """Prevents any progression items from appearing in Sacred Grounds"""

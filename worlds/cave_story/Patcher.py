@@ -202,10 +202,11 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
         patch_ap_sprite(dest_dir)
     # Hash and UUID
     logger.info("Copying hash and uuid...")
-    random.seed(uuid.int)
+    random.seed(uuid)
     hash = ",".join([f"{num:04d}" for num in [random.randint(1, 38) for _ in range(5)]])
     dest_dir.joinpath("hash.txt").write_text(hash)
-    dest_dir.joinpath("uuid.txt").write_text('{'+str(uuid)+'}')
+    dest_dir.joinpath("uuid.txt").write_text(uuid)
+    logger.info(f"Done! Patching took {0} seconds")
 
 def patch_ap_sprite(path):
     with open(path.joinpath('ItemImage.bmp'), "rb") as f:

@@ -23,7 +23,7 @@ CS_COUNT_OFFSET = 7778
 CS_DEATH_OFFSET = 7777
 LOCATIONS_NUM = 69
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
-VERSION = 'v0.5'
+VERSION = 'v0.6'
 
 class CSPacket(Enum):
     READINFO = 0
@@ -184,6 +184,10 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
     def __init__(self, ctx: CommonContext):
         super().__init__(ctx)
     
+    def _cmd_cs_launch(self) -> bool:
+        """Launches the game"""
+        return launch_game(self.ctx)
+
     def _cmd_cs_tsc(self, script: str) -> bool:
         """Execute the following TSC Comand"""
         logger.info(f"Executing TSC command: {script}")
@@ -191,7 +195,6 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
             Utils.async_start(send_packet(self.ctx, encode_packet(CSPacket.RUNTSC, script)))
             return True
         return False
-    
     def _cmd_cs_sync(self) -> bool:
         """Force a sync to occur"""
         # Utils.async_start(connector_receive_items(self.ctx)) TODO
@@ -212,6 +215,7 @@ class CaveStoryContext(CommonContext):
     def __init__(self, args):
         super().__init__(args.connect, args.password)
         self.cs_streams: Tuple = None
+        self.send_lock = asyncio.Lock()
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
         self.game_exe = Path(CaveStoryWorld.settings.game_exe).expanduser()
@@ -270,15 +274,16 @@ class CaveStoryContext(CommonContext):
     def needs_patch(self) -> bool:
         if self.slot_num and self.seed_name:
             server_uuid = '{'+str(uuid.uuid3(BASE_UUID,self.seed_name+str(self.slot_num)))+'}'
+            try:
+                with open(self.uuid_path) as f:
+                    client_uuid = f.read()
+            except:
+                client_uuid = BASE_UUID
+            # client_uuid = BASE_UUID # Uncomment to make it always patch
+            return client_uuid != server_uuid
         else:
-            return True
-        try:
-            with open(self.uuid_path) as f:
-                client_uuid = f.read()
-        except:
-            client_uuid = BASE_UUID
-        # client_uuid = BASE_UUID # Uncomment to make it always patch
-        return client_uuid != server_uuid
+            return False
+        
 
 def encode_packet(pkt_type: CSPacket, data = None, addr: int = None):
     if not data:
@@ -300,41 +305,55 @@ def encode_packet(pkt_type: CSPacket, data = None, addr: int = None):
             data_bytes = data.to_bytes(1, 'little')
     return pkt_type.value.to_bytes(1, 'little') + len(data_bytes).to_bytes(4, 'little') + data_bytes
 
-async def send_packet(ctx: CaveStoryContext, pkt: bytes, alt: bool=False):
-    try:
-        # Unpack streams
-        reader, writer = ctx.cs_streams
-        # Send packet
-        writer.write(pkt)
-        await asyncio.wait_for(writer.drain(), timeout=1.5)
-        # Receive response
-        header = await asyncio.wait_for(reader.read(5), timeout=5)
-        if header:
-            # Parse header
-            pkt_type = CSPacket(pkt[0])
-            length = int.from_bytes(header[1:4], 'little')
-            # Verify we are receiving the right response
-            if pkt[0] != CSPacket(header[0]):
-                raise Exception("Unexpected Packet Response")
-            # Parse Data
-            if length > 0:
-                data_bytes = await asyncio.wait_for(reader.read(length), timeout=5)
+async def send_packet(ctx: CaveStoryContext, pkt: bytes):
+    if not ctx.cs_streams:
+        raise Exception("Trying to send packet when there's no connection! This is bad!")
+    # Communicating with RCON must be mutex since we assume that packets sent are met with the correct response
+    async with ctx.send_lock:
+        pkt_type = None
+        length = None
+        data_bytes = None
+        try:
+            # Unpack streams
+            reader, writer = ctx.cs_streams
+            # Send packet
+            writer.write(pkt)
+            await asyncio.wait_for(writer.drain(), timeout=1.5)
+            # Receive response
+            header = await asyncio.wait_for(reader.read(5), timeout=5)
+            if header:
+                # Parse header
+                pkt_type = CSPacket(header[0])
+                length = int.from_bytes(header[1:4], 'little')
+                # Verify we are receiving the right response. This should never happen due to mutex
+                if pkt_type != CSPacket(pkt[0]):
+                    raise Exception("Unexpected Packet Response")
+                # Parse Data
+                if length > 0:
+                    data_bytes = await asyncio.wait_for(reader.read(length), timeout=5)
+                # Log error packets
+                if pkt_type in (CSPacket.ERROR,):
+                    data = data_bytes.decode()
+                    logger.debug(f"Cave Story RCON Error: {data}")
+                # Return data bytes
+                return data_bytes
             else:
-                data_bytes = None
-            # Log error packets
-            if pkt_type in (CSPacket.ERROR,):
-                data = data_bytes.decode()
-                logger.debug(f"Cave Story RCON Error: {data}")
-            # Return data bytes
-            return data_bytes
-        else:
-            raise Exception("Bad Header Response")
-    except Exception as e:
-        logger.debug(f"Failed to send packet: {e}")
-        ctx.cs_streams = None
+                raise Exception("Bad Header Response")
+        except Exception as e:
+            logger.debug(f"Failed to send packet: {e}")
+            if pkt_type and length and data_bytes:
+                logger.debug(f"({pkt} -> {pkt_type}|{length}|{data_bytes})")
+            ctx.cs_streams = None
 
 def game_running(ctx):
     return ctx.game_process and ctx.game_process.poll() is None
+
+async def game_ready(ctx):
+    if game_running(ctx) and ctx.cs_streams:
+        status = await send_packet(ctx, encode_packet(CSPacket.READSTATE))
+        return int(status[0]) in range(2,8,1)
+    else:
+        return False
 
 def patch_game(ctx):
     try:
@@ -368,154 +387,155 @@ def launch_game(ctx):
             ctx.game_process = subprocess.Popen([ctx.game_exe], cwd=exec_dir)
             return True
         except Exception as e:
-            logger.info(f"Launching Failed! {e}, please launch the game manually!")
+            logger.info(f"Launching Failed: {e}")
             return False
     else:
+        logger.info(f"Game is already Running!")
         return True
-        
-async def cr_server(ctx):
-    server_task = asyncio.create_task(server_loop(ctx), name="server loop")
-    if gui_enabled:
-        ctx.run_gui()
-    ctx.run_cli()
-    await server_task
 
 async def cr_connect(ctx):
-    # await game_running
-    if ctx.needs_patch():
-        ctx.cs_streams = None
-        logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
-    else:
-        if ctx.cs_streams:
-            # await not ctx.cs_streams
-            pass
-        else:
-            try:
-                ctx.cs_streams = await asyncio.open_connection("localhost", ctx.rcon_port)
-                data_bytes = await send_packet(ctx, encode_packet(CSPacket.READINFO))
-                data = json.loads(data_bytes.decode())
-                ctx.offsets = data['offsets']
-                logger.debug(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
-            except:
-                logger.info("Failed to connect, retrying in 5 seconds")
-                await asyncio.sleep(5)
-            # connection_task = asyncio.create_task(asyncio.open_connection("localhost", ctx.rcon_port))
-            # done, _pending = await asyncio.wait(
-            #     [ctx.exit_event.wait(), connection_task],
-            #     timeout=5,
-            #     return_when=asyncio.FIRST_COMPLETED
-            # )
-            # if ctx.exit_event.is_set():
-            #     connection_task.cancel()
-            # elif connection_task in done:
-            #     ctx.cs_streams = await connection_task
-            #     await send_packet(ctx, encode_packet(CSPacket.READINFO))
-            #     logger.info("Successfully connected to Cave Story")
-            # else:
-            #     connection_task.cancel()
+    while not ctx.exit_event.is_set():
+        if game_running(ctx):
+            if ctx.needs_patch():
+                ctx.cs_streams = None
+                logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
+            else:
+                if ctx.cs_streams:
+                    # await not ctx.cs_streams
+                    pass
+                else:
+                    try:
+                        ctx.cs_streams = await asyncio.open_connection("localhost", ctx.rcon_port)
+                        if not ctx.cs_streams:
+                            raise Exception
+                        data_bytes = await send_packet(ctx, encode_packet(CSPacket.READINFO))
+                        data = json.loads(data_bytes.decode())
+                        ctx.offsets = data['offsets']
+                        logger.debug(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
+                    except:
+                        logger.info("Failed to currently running game, retrying in 5 seconds")
+                        await asyncio.sleep(5)
+        await asyncio.sleep(1)
         
 
 async def cr_receivables(ctx):
     # await ctx.send_msgs([{"cmd": "Sync"}])
-    while not ctx.death and await send_packet(ctx, encode_packet(CSPacket.READSTATE), True):
-        logger.debug("Attempting to sync with Cave Story")
-        data_bytes = await send_packet(ctx, encode_packet(
-            CSPacket.READFLAGS,
-            range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
-        ), True)
-
-        bit_count = 0
-        verify_script = ''
-        for i, b in enumerate(data_bytes):
-            bit_count <<= 1
-            bit_count += b
-            if b == 0x00:
-                verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
-        # logger.debug(f'Bit Count:{bit_count:016b}')
-        if (~bit_count & 0xFF) == (bit_count >> 8):
-            count = bit_count & 0xFF
-            if count != len(ctx.items_received):
-                new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
-                update_script = ''
-                for i, j in enumerate(range(15,-1,-1)):
-                    if ((new_bit_count >> j) & 1) == 1:
-                        update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
-                    else:
-                        update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
-                item_id = ctx.items_received[count].item-AP_OFFSET
-                if item_id == 17:
-                    # Refill Station
-                    item_script = f"\r\n<PRI<MSG<TURGot Refill Station<WAIT0025<NOD<END<LI+<AE+\r\n"
-                elif item_id < 100:
-                    # Normal items
-                    item_script = f'<EVE{item_id:04}'
-                elif item_id == 110:
-                    # Black Wind Trap
-                    item_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
-                script = verify_script + update_script + item_script
-                await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+    while not ctx.exit_event.is_set():
+        # ~~~ await ctx.cs_streams exists
+        if not ctx.death and await game_ready(ctx):
+            logger.debug("Attempting to sync with Cave Story")
+            data_bytes = await send_packet(ctx, encode_packet(
+                CSPacket.READFLAGS,
+                range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
+            ))
+            bit_count = 0
+            verify_script = ''
+            for i, b in enumerate(data_bytes):
+                bit_count <<= 1
+                bit_count += b
+                if b == 0x00:
+                    verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
+            # logger.debug(f'Bit Count:{bit_count:016b}')
+            if (~bit_count & 0xFF) == (bit_count >> 8):
+                count = bit_count & 0xFF
+                if count != len(ctx.items_received):
+                    new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
+                    update_script = ''
+                    for i, j in enumerate(range(15,-1,-1)):
+                        if ((new_bit_count >> j) & 1) == 1:
+                            update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
+                        else:
+                            update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
+                    item_id = ctx.items_received[count].item-AP_OFFSET
+                    if item_id == 17:
+                        # Refill Station
+                        item_script = f"\r\n<PRI<MSG<TURGot Refill Station<WAIT0025<NOD<END<LI+<AE+\r\n"
+                    elif item_id < 100:
+                        # Normal items
+                        item_script = f'<EVE{item_id:04}'
+                    elif item_id == 110:
+                        # Black Wind Trap
+                        item_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
+                    script = verify_script + update_script + item_script
+                    await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+                else:
+                    logger.debug('Sync completed!')
+                    return None
             else:
-                logger.debug('Sync completed!')
-                return None
-        else:
-            logger.debug('Resetting Count')
-            update_script = ''
-            for i in range(15,-1,-1):
-                op = '+' if i < 8 else '-'
-                update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
-            script = update_script + '<END'
-            await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+                logger.debug('Resetting Count')
+                update_script = ''
+                for i in range(15,-1,-1):
+                    op = '+' if i < 8 else '-'
+                    update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
+                script = update_script + '<END'
+                await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+        await asyncio.sleep(1)
 
 async def cr_sendables(ctx):
-    data_bytes = await send_packet(ctx, encode_packet(
-        CSPacket.READFLAGS,
-        [*range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM),7777]
-    ))
-    locations_checked = []
-    for i, b in enumerate(data_bytes):
-        if i == LOCATIONS_NUM:
-            if b == 1 and not ctx.death:
-                logger.debug('Death detected from Client')
-                ctx.death = True
-                if ctx.slot_data['deathlink']:
-                    Utils.async_start(ctx.send_death(ctx))
-            elif b == 0 and ctx.death:
-                logger.debug('Reloaded, permitting sync')
-                # await connector_receive_items() uh why is this here?
-                ctx.death = False
-        elif b == 1 and not ctx.locations_vec[i]:
-            ctx.locations_vec[i] = True
-            if i == LOCATIONS_NUM - 1:
-                ctx.victory = True
-            else:
-                locations_checked.append(AP_OFFSET+i)
-    if len(locations_checked) > 0:
-        await ctx.send_msgs([
-            {"cmd": "LocationChecks",
-            "locations": locations_checked}
-        ])
-    if ctx.victory and not ctx.finished_game:
-        ctx.finished_game = True
-        await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])
+    while not ctx.exit_event.is_set():
+        # ~~~ await ctx.cs_streams exists
+        if await game_ready(ctx):
+            data_bytes = await send_packet(ctx, encode_packet(
+                CSPacket.READFLAGS,
+                [*range(CS_LOCATION_OFFSET,CS_LOCATION_OFFSET+LOCATIONS_NUM),7777]
+            ))
+            locations_checked = []
+            for i, b in enumerate(data_bytes):
+                if i == LOCATIONS_NUM:
+                    if b == 1 and not ctx.death:
+                        logger.debug('Death detected from Client')
+                        ctx.death = True
+                        if ctx.slot_data['deathlink']:
+                            Utils.async_start(ctx.send_death(ctx))
+                    elif b == 0 and ctx.death:
+                        logger.debug('Reloaded, permitting sync')
+                        # await connector_receive_items() uh why is this here?
+                        ctx.death = False
+                elif b == 1 and not ctx.locations_vec[i]:
+                    ctx.locations_vec[i] = True
+                    if i == LOCATIONS_NUM - 1:
+                        ctx.victory = True
+                    else:
+                        locations_checked.append(AP_OFFSET+i)
+            if len(locations_checked) > 0:
+                await ctx.send_msgs([
+                    {"cmd": "LocationChecks",
+                    "locations": locations_checked}
+                ])
+            if ctx.victory and not ctx.finished_game:
+                ctx.finished_game = True
+                await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])
+        await asyncio.sleep(1)
 
 async def cr_autotab(ctx):
-    data_bytes = await send_packet(ctx, encode_packet(
-        CSPacket.READSTATE,
-        1
-    ))
-    try:
-        autotab = CS_TRACKER_AUTOTAB_MAP[data_bytes.decode()]
-    except KeyError:
-        autotab = CSTrackerAutoTab.UNDEFINED
-    if ctx.poptracker_curlevel != autotab:
-        ctx.poptracker_curlevel = autotab
-        logger.info(f"Switching Tab: {autotab.value}")
+    while not ctx.exit_event.is_set():
+        # ~~~ await ctx.cs_streams exists
+        if await game_ready(ctx):
+            data_bytes = await send_packet(ctx, encode_packet(
+                CSPacket.READSTATE,
+                1
+            ))
+            try:
+                autotab = CS_TRACKER_AUTOTAB_MAP[data_bytes.decode()]
+            except KeyError:
+                autotab = CSTrackerAutoTab.UNDEFINED
+            if ctx.poptracker_curlevel != autotab:
+                ctx.poptracker_curlevel = autotab
+                logger.info(f"Switching Tab: {autotab.value}")
+        await asyncio.sleep(1)
 
 async def main(args):
     ctx = CaveStoryContext(args)
-    coroutines = [cr_server(ctx), cr_connect(ctx), cr_receivables(ctx), cr_sendables(ctx), cr_autotab(ctx)]
+    # Server task. Needs to run first in order for ctx to properly be set up
+    server_task = asyncio.create_task(server_loop(ctx), name="server loop")
+    if gui_enabled:
+        ctx.run_gui()
+    ctx.run_cli()
+    # Client tasks
+    client_coroutines = [cr_connect(ctx), cr_receivables(ctx), cr_sendables(ctx), cr_autotab(ctx)]
+    # Run everything
     try:
-        await asyncio.gather(*coroutines)
+        await asyncio.gather(server_task, *client_coroutines)
     except asyncio.CancelledError:
         pass
     finally:

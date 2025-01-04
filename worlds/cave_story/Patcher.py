@@ -158,7 +158,7 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
     # Flags for the starting point
     softlock_flags = '<MP+0040<MP+0043<MP+0057<MP+0006<MP+0053<MP+0032<MP+0033<MP+0036'
     tp_flags = '<PS+0001:6001<PS+0002:6002<PS+0003:6003<PS+0004:6004<PS+0005:6005'
-    hp_counter_flags = '<FL+4011<FL+4012<FL-4013<FL-4014<FL-4015<FL-4016'
+    hp_counter_flags = '<FL+4011<FL+4012<FL-4013<FL-4014<FL-4015<FL-4016' # 6-bit binary number for 3
     # Rocket Skip
     extra = '<FL+6400'
     scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{tp_flags}{hp_counter_flags}{no_blocks}{softlock_flags}{extra}\r\n{start_room}\r\n','',0))

@@ -18,11 +18,11 @@ components.append(Component("Cave Story Client", "CaveStoryClient", func=launch_
 
 class CaveStorySettings(Group):
     class GameDir(FolderPath):
-        description = "Cave Story Randomizer Root Directory"
+        description = "cave-story-randomizer Root Directory"
 
-    game_dir: GameDir = GameDir("C:\ProgramData\Archipelago\cave-story-randomizer-X.X.X")
+    game_dir: GameDir = GameDir("C:\ProgramData\Archipelago\cave-story-randomizer-*")
     game_platform: str = "freeware"
-    ignore_process: str = "false"
+    ignore_process: bool = False
 
 class CaveStoryWeb(WebWorld):
     tutorials = [

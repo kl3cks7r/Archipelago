@@ -30,7 +30,7 @@ CS_COUNT_OFFSET = 7778
 CS_DEATH_OFFSET = 7777
 LOCATIONS_NUM = 69
 BASE_UUID = uuid.UUID('00000000-0000-1111-0000-000000000000')
-VERSION = 'v0.6'
+VERSION = 'v0.5'
 
 class CSPacket(Enum):
     READINFO = 0
@@ -205,7 +205,7 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
     
     def _cmd_cs_sync(self) -> bool:
         """Force a sync to occur"""
-        # Utils.async_start(connector_receive_items(self.ctx)) TODO
+        Utils.async_start(rcon_sync(self.ctx))
         return True
     
     def _cmd_cs_platform(self, platform) -> bool:
@@ -232,7 +232,8 @@ class CaveStoryContext(CommonContext):
     def __init__(self, args):
         super().__init__(args.connect, args.password)
         self.cs_streams: Tuple = None
-        self.send_lock = asyncio.Lock()
+        self.send_lock: asyncio.Lock = asyncio.Lock()
+        self.sync_lock: asyncio.Lock = asyncio.Lock()
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
         self.game_dir = Path(CaveStoryWorld.settings.game_dir).expanduser()
@@ -241,6 +242,7 @@ class CaveStoryContext(CommonContext):
         self.rcon_port = args.rcon_port
         self.seed_name = None
         self.slot_num = None
+        self.team_num = None
         self.slot_data = None
         self.victory = False
         self.death = False
@@ -260,12 +262,16 @@ class CaveStoryContext(CommonContext):
             self.seed_name = args['seed_name']
         elif cmd == 'Connected':
             self.slot_num = args['slot']
+            self.team_num = args['team']
             self.slot_data = args['slot_data']
             Utils.async_start(self.send_msgs([
                 {"cmd": "LocationScouts",
                 "locations": self.server_locations,
                 "create_as_hint": 0}
             ]))
+        elif cmd == 'ReceivedItems':
+            if game_ready(self):
+                Utils.async_start(rcon_sync(self))
 
     def on_deathlink(self, data):
         super().on_deathlink(data)
@@ -426,6 +432,64 @@ def launch_game(ctx):
         logger.info(f"Game is already Running!")
         return True
 
+async def rcon_sync(ctx):
+    # If we are already syncing ignore additional requests
+    if ctx.sync_lock.locked():
+        return
+    async with ctx.sync_lock:
+        while not ctx.exit_event.is_set():
+            if not ctx.death and await game_ready(ctx):
+                logger.debug("Attempting to sync with Cave Story")
+                data_bytes = await send_packet(ctx, encode_packet(
+                    CSPacket.READFLAGS,
+                    range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
+                ))
+                if not data_bytes:
+                    continue
+                bit_count = 0
+                verify_script = ''
+                for i, b in enumerate(data_bytes):
+                    bit_count <<= 1
+                    bit_count += b
+                    if b == 0x00:
+                        verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
+                # logger.debug(f'Bit Count:{bit_count:016b}')
+                if (~bit_count & 0xFF) == (bit_count >> 8):
+                    count = bit_count & 0xFF
+                    if count != len(ctx.items_received):
+                        new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
+                        update_script = ''
+                        for i, j in enumerate(range(15,-1,-1)):
+                            if ((new_bit_count >> j) & 1) == 1:
+                                update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
+                            else:
+                                update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
+                        item_id = ctx.items_received[count].item-AP_OFFSET
+                        if item_id == 17:
+                            # Refill Station
+                            item_script = f"\r\n<PRI<MSG<TURGot Refill Station<WAIT0025<NOD<END<LI+<AE+\r\n"
+                        elif item_id < 100:
+                            # Normal items
+                            item_script = f'<EVE{item_id:04}'
+                        elif item_id == 110:
+                            # Black Wind Trap
+                            item_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
+                        script = verify_script + update_script + item_script
+                        await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+                    else:
+                        logger.debug('Sync completed!')
+                        return
+                else:
+                    logger.debug('Resetting Count')
+                    update_script = ''
+                    for i in range(15,-1,-1):
+                        op = '+' if i < 8 else '-'
+                        update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
+                    script = update_script + '<END'
+                    await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
+            else:
+                await asyncio.sleep(3)
+
 async def cr_connect(ctx):
     while not ctx.exit_event.is_set():
         if game_running(ctx):
@@ -448,64 +512,11 @@ async def cr_connect(ctx):
                         logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
                         while game_running(ctx):
                             await asyncio.sleep(3)
+                    await ctx.send_msgs([{"cmd": "Sync"}])
+                    Utils.async_start(rcon_sync(ctx))
                 except Exception as e:
                     logger.info(f"Failed to connect to currently running game: {e}, retrying in 5 seconds")
                     await asyncio.sleep(5)
-        await asyncio.sleep(1)
-        
-
-async def cr_receivables(ctx):
-    # await ctx.send_msgs([{"cmd": "Sync"}])
-    while not ctx.exit_event.is_set():
-        if not ctx.death and await game_ready(ctx):
-            logger.debug("Attempting to sync with Cave Story")
-            data_bytes = await send_packet(ctx, encode_packet(
-                CSPacket.READFLAGS,
-                range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
-            ))
-            if not data_bytes:
-                continue
-            bit_count = 0
-            verify_script = ''
-            for i, b in enumerate(data_bytes):
-                bit_count <<= 1
-                bit_count += b
-                if b == 0x00:
-                    verify_script += f'<FLJ{CS_COUNT_OFFSET+i:04}:0000'
-            # logger.debug(f'Bit Count:{bit_count:016b}')
-            if (~bit_count & 0xFF) == (bit_count >> 8):
-                count = bit_count & 0xFF
-                if count != len(ctx.items_received):
-                    new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
-                    update_script = ''
-                    for i, j in enumerate(range(15,-1,-1)):
-                        if ((new_bit_count >> j) & 1) == 1:
-                            update_script += f'<FL+{CS_COUNT_OFFSET+i:04}'
-                        else:
-                            update_script += f'<FL-{CS_COUNT_OFFSET+i:04}'
-                    item_id = ctx.items_received[count].item-AP_OFFSET
-                    if item_id == 17:
-                        # Refill Station
-                        item_script = f"\r\n<PRI<MSG<TURGot Refill Station<WAIT0025<NOD<END<LI+<AE+\r\n"
-                    elif item_id < 100:
-                        # Normal items
-                        item_script = f'<EVE{item_id:04}'
-                    elif item_id == 110:
-                        # Black Wind Trap
-                        item_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
-                    script = verify_script + update_script + item_script
-                    await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
-                else:
-                    logger.debug('Sync completed!')
-                    return None
-            else:
-                logger.debug('Resetting Count')
-                update_script = ''
-                for i in range(15,-1,-1):
-                    op = '+' if i < 8 else '-'
-                    update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
-                script = update_script + '<END'
-                await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
         await asyncio.sleep(1)
 
 async def cr_sendables(ctx):
@@ -558,9 +569,21 @@ async def cr_autotab(ctx):
                 autotab = CS_TRACKER_AUTOTAB_MAP[data_bytes.decode()]
             except KeyError:
                 autotab = CSTrackerAutoTab.UNDEFINED
-            if ctx.poptracker_curlevel != autotab:
-                ctx.poptracker_curlevel = autotab
-                logger.debug(f"Switching Tab: {autotab.value}")
+            try:
+                if ctx.poptracker_curlevel != autotab:
+                    ctx.poptracker_curlevel = autotab
+                    logger.debug(f"Switching Tab: {autotab.value}")
+                    team = ctx.team_num if ctx.team_num else 0
+                    slot = ctx.slot_num if ctx.slot_num else 0
+                    await ctx.send_msgs([
+                        {"cmd": "Set",
+                        "key": f"cavestory_currentlevel_{team}_{slot}",
+                        "default": 0,
+                        "want_reply": False,
+                        "operations": [{"operation": "replace", "value": autotab.value}]}
+                    ])
+            except Exception as e:
+                logger.info(f"Caught Exception: {e}")
         await asyncio.sleep(1)
 
 async def main(args):
@@ -571,7 +594,7 @@ async def main(args):
         ctx.run_gui()
     ctx.run_cli()
     # Client tasks
-    coroutines = [server_task, cr_connect(ctx), cr_receivables(ctx), cr_sendables(ctx), cr_autotab(ctx)]
+    coroutines = [server_task, cr_connect(ctx), cr_sendables(ctx), cr_autotab(ctx)]
     # Run everything
     try:
         await asyncio.gather(*coroutines)

@@ -141,20 +141,27 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
         goal_flags = '<FL+6000'
     elif goal == 2:
         goal_flags = '<FL+6001'
+    # Starting locations
     if slot_data['start'] == 0:
+        # First Cave
         start_room = '<FL+6200<EVE0091'
     elif slot_data['start'] == 1:
-        start_room = '<TRA0001:0094:0017:0008'
+        # Arthur's House
+        start_room = '<FL+0301<FL+0302<FL+1641<FL+1642<FL+0320<FL+0321<TRA0001:0094:0017:0008'
     else:
-        start_room = '<TRA0040:0092:0004:0005'
+        # Camp
+        start_room = '<FL+0301<FL+0302<FL+1641<FL+1642<FL+0320<FL+0321<FL+6201<FL+6202<TRA0040:0092:0004:0005'
     if slot_data['no_blocks']:
         no_blocks = '<FL+1351'
     else:
         no_blocks = ''
     # Flags for the starting point
-    softlock_flags = '<MP+0040<MP+0043<MP+0032<MP+0033<MP+0036'
-    counter_flags = '<FL+4011<FL+4012<FL-4013<FL-4014<FL-4015<FL-4016'
-    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{counter_flags}{no_blocks}{softlock_flags}\r\n{start_room}\r\n','',0))
+    softlock_flags = '<MP+0040<MP+0043<MP+0057<MP+0006<MP+0053<MP+0032<MP+0033<MP+0036'
+    tp_flags = '<PS+0001:6001<PS+0002:6002<PS+0003:6003<PS+0004:6004<PS+0005:6005'
+    hp_counter_flags = '<FL+4011<FL+4012<FL-4013<FL-4014<FL-4015<FL-4016'
+    # Rocket Skip
+    extra = '<FL+6400'
+    scripts['Start'].append(('0201',f'\r\n{goal_flags}\r\n{tp_flags}{hp_counter_flags}{no_blocks}{softlock_flags}{extra}\r\n{start_room}\r\n','',0))
     # Victory flags
     if goal == 0:
         tsc_path = dest_dir.joinpath("Stage", "Oside.tsc")

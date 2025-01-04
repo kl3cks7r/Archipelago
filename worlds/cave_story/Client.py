@@ -238,6 +238,7 @@ class CaveStoryContext(CommonContext):
         self.offsets = None
         self.game_dir = Path(CaveStoryWorld.settings.game_dir).expanduser()
         self.game_platform = CaveStoryWorld.settings.game_platform
+        self.ignore_process = CaveStoryWorld.settings.ignore_process
         self.game_process = None
         self.rcon_port = args.rcon_port
         self.seed_name = None
@@ -378,10 +379,15 @@ async def send_packet(ctx: CaveStoryContext, pkt: bytes):
             ctx.cs_streams = None
 
 def game_running(ctx):
-    return ctx.game_process and ctx.game_process.poll() is None
+    if ctx.game_process and ctx.game_process.poll() is None:
+        return True
+    elif ctx.ignore_process:
+        return True
+    else:
+        return False 
 
 async def game_ready(ctx):
-    if game_running(ctx) and ctx.cs_streams and ctx.server and ctx.server.socket and not ctx.server.socket.closed:
+    if ctx.cs_streams and ctx.server and ctx.server.socket and not ctx.server.socket.closed:
         status = await send_packet(ctx, encode_packet(CSPacket.READSTATE))
         if status:
             return int(status[0]) in range(2,8,1)
@@ -439,7 +445,6 @@ async def rcon_sync(ctx):
     async with ctx.sync_lock:
         while not ctx.exit_event.is_set():
             if not ctx.death and await game_ready(ctx):
-                logger.debug("Attempting to sync with Cave Story")
                 data_bytes = await send_packet(ctx, encode_packet(
                     CSPacket.READFLAGS,
                     range(CS_COUNT_OFFSET,CS_COUNT_OFFSET+16)
@@ -457,6 +462,7 @@ async def rcon_sync(ctx):
                 if (~bit_count & 0xFF) == (bit_count >> 8):
                     count = bit_count & 0xFF
                     if count != len(ctx.items_received):
+                        logger.debug("Items received differs, sending items")
                         new_bit_count = (~((count+1) << 8) & 0xFF00) + (count+1)
                         update_script = ''
                         for i, j in enumerate(range(15,-1,-1)):
@@ -487,16 +493,12 @@ async def rcon_sync(ctx):
                         update_script += f'<FL{op}{CS_COUNT_OFFSET+i:04}'
                     script = update_script + '<END'
                     await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
-            else:
-                await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
 async def cr_connect(ctx):
     while not ctx.exit_event.is_set():
         if game_running(ctx):
-            if ctx.cs_streams:
-                # await not ctx.cs_streams
-                pass
-            else:
+            if not ctx.cs_streams:
                 try:
                     ctx.cs_streams = await asyncio.open_connection("localhost", ctx.rcon_port)
                     if not ctx.cs_streams:
@@ -506,12 +508,15 @@ async def cr_connect(ctx):
                         raise Exception
                     data = json.loads(data_bytes.decode())
                     ctx.offsets = data['offsets']
-                    logger.debug(f"Connected to \'{data['platform']}\' client using API v{data['api_version']} with UUID {data['uuid']}")
+                    logger.info(f"Connected to \'{data['platform']}\' game using API v{data['api_version']} with UUID {data['uuid']}")
                     if ctx.needs_patch():
                         ctx.cs_streams = None
                         logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
                         while game_running(ctx):
-                            await asyncio.sleep(3)
+                            if ctx.exit_event.is_set():
+                                break
+                            await asyncio.sleep(1)
+                        continue
                     await ctx.send_msgs([{"cmd": "Sync"}])
                     Utils.async_start(rcon_sync(ctx))
                 except Exception as e:
@@ -537,8 +542,8 @@ async def cr_sendables(ctx):
                         if ctx.slot_data['deathlink']:
                             Utils.async_start(ctx.send_death(ctx))
                     elif b == 0 and ctx.death:
-                        logger.debug('Reloaded, permitting sync')
-                        # await connector_receive_items() uh why is this here?
+                        logger.debug('Reloaded, syncing')
+                        Utils.async_start(rcon_sync(ctx))
                         ctx.death = False
                 elif b == 1 and not ctx.locations_vec[i]:
                     ctx.locations_vec[i] = True

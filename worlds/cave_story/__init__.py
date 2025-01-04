@@ -22,6 +22,7 @@ class CaveStorySettings(Group):
 
     game_dir: GameDir = GameDir("C:\ProgramData\Archipelago\cave-story-randomizer-X.X.X")
     game_platform: str = "freeware"
+    ignore_process: str = "false"
 
 class CaveStoryWeb(WebWorld):
     tutorials = [

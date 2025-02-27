@@ -17,8 +17,7 @@ from kivy.uix.button import Button
 from kivy.metrics import dp
 
 import Utils
-# from Utils import is_windows
-is_windows = True
+from Utils import is_windows
 
 from CommonClient import CommonContext, ClientCommandProcessor, \
     get_base_parser, server_loop, gui_enabled, logger

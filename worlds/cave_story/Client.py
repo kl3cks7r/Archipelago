@@ -11,11 +11,6 @@ import uuid
 from .Patcher import *
 from . import CaveStoryWorld
 
-from kivy.clock import Clock
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.metrics import dp
-
 import Utils
 from Utils import is_windows
 
@@ -249,7 +244,6 @@ class CaveStoryContext(CommonContext):
         self.poptracker_curlevel: CSTrackerAutoTab = CSTrackerAutoTab.UNDEFINED
         self.poptracker_events = [False] * len(CSTrackerEvent)
         logger.debug(f'Running version {VERSION}')
-        Clock.schedule_once(self._add_cs_gui, 0)
 
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
@@ -280,6 +274,7 @@ class CaveStoryContext(CommonContext):
     def run_gui(self):
         """Import kivy UI system and start running it as self.ui_task."""
         from kvui import GameManager
+        from kivy.clock import Clock
 
         class CaveStoryManager(GameManager):
             logging_pairs = [
@@ -288,9 +283,13 @@ class CaveStoryContext(CommonContext):
             base_title = "Archipelago Cave Story Client"
 
         self.ui = CaveStoryManager(self)
+        Clock.schedule_once(self._add_cs_gui, 0)
         self.ui_task = asyncio.create_task(self.ui.async_run(), name="UI")
 
     def _add_cs_gui(self, _dt):
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.button import Button
+        from kivy.metrics import dp
         # Create Cave Story button
         extra_layout = BoxLayout(
             orientation="horizontal",
@@ -401,7 +400,7 @@ def patch_game(ctx):
                 item_name = item.item-AP_OFFSET
             else:
                 player_name = ctx.player_names[item.player]
-                item_name = ctx.item_names[item.item]
+                item_name = ctx.item_names.lookup_in_slot(item.item, item.player) # per-game ids should work here?
             locations.append([loc-AP_OFFSET,player_name,item_name])
         cs_uuid = '{'+str(uuid.uuid3(BASE_UUID,ctx.seed_name+str(ctx.slot_num)))+'}'
         patch_files(locations, cs_uuid, ctx.game_dir, ctx.game_platform, ctx.slot_data, logger)
@@ -472,13 +471,13 @@ async def rcon_sync(ctx):
                         item_id = ctx.items_received[count].item-AP_OFFSET
                         if item_id == 17:
                             # Refill Station
-                            item_script = f"\r\n<PRI<MSG<TURGot Refill Station<WAIT0025<NOD<END<LI+<AE+\r\n"
+                            item_script = f"\r\n<PRI<MSG<TURGot Refill Station<WAI0025<NOD<END<LI+<AE+\r\n"
                         elif item_id < 100:
                             # Normal items
                             item_script = f'<EVE{item_id:04}'
                         elif item_id == 110:
                             # Black Wind Trap
-                            item_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAIT0025<NOD<END<ZAM\r\n"
+                            item_script = f"\r\n<PRI<MSG<TURYou feel a black wind...<WAI0025<NOD<END<ZAM\r\n"
                         script = verify_script + update_script + item_script
                         await send_packet(ctx, encode_packet(CSPacket.RUNTSC, script))
                     else:

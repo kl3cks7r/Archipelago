@@ -36,7 +36,6 @@ class CaveStoryWeb(WebWorld):
         )
     ]
     theme = "stone"
-    bug_report_page = "https://github.com/kl3cks7r/Cave-Story-Archipelago/issues"
 
 
 class CaveStoryWorld(World):

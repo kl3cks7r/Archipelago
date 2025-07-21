@@ -8,12 +8,15 @@ from kivy.uix.scrollview import ScrollView
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogButtonContainer
+from kivymd.uix.textfield import MDTextField
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.card import MDCard
 from kivymd.uix.widget import Widget
 from kivy.clock import Clock
 
 from CommonClient import logger
+
+from .. import CaveStoryWorld
 
 from .Connector import *
 
@@ -23,24 +26,23 @@ class InstanceCard(MDCard):
     tweaked = BooleanProperty(False)
 
     def launch_instance(self):
+        ctx = App.get_running_app().ctx
+        ctx.tweaked = self.tweaked
         logger.info(f"Launching {self.name!r} (tweaked={self.tweaked})")
-        launch_game(App.get_running_app().ctx, tweaked=self.tweaked) # FIXME: find a way to pass ctx to this widget
+        launch_game(ctx, tweaked=self.tweaked) # FIXME: find a way to pass ctx to this widget
 
 class LauncherWidget(MDBoxLayout):
-    version = StringProperty("v0.0.0")
-    game_path = StringProperty("")
-    download_button_text = StringProperty("Download Game")
     dialog = ObjectProperty(MDDialog)
+    instances_dir = StringProperty(CaveStoryWorld.settings['game_dir'])
 
     def browse_game_path(self):
         """Stub for file-browse dialog."""
-        logger.info("browse_game_path called")
-        # TODO: integrate FileChooser to pick game executable
-
-    def reveal_game_path(self):
-        """Stub for revealing path in OS file manager."""
-        logger.info("reveal_game_path called")
-        # TODO: use platform-specific call to open folder
+        new_folder = CaveStoryWorld.settings['game_dir'].browse()
+        if new_folder is not None:
+            
+            Clock.schedule_once(lambda dt: setattr(self, 'instances_dir', new_folder), 0)
+            CaveStoryWorld.settings['game_dir'] = new_folder
+            logger.info(f"New game path selected: {CaveStoryWorld.settings['game_dir']!r}")
 
     def add_instance(self):
         """Stub for adding a new game instance row."""
@@ -59,28 +61,24 @@ class LauncherWidget(MDBoxLayout):
                 MDButton(
                     MDButtonText(text="Cancel"),
                     style="text",
-                    on_release=self.dialog.dismiss()
+                    on_release=self._on_cancel
                 ),
                 MDButton(
                     MDButtonText(text="Accept"),
                     style="text",
-                    on_release=self.dialog_confirm()
+                    on_release=self._on_confirm
                 ),
                 spacing="8dp",
             ),
         )
         self.dialog.open()
         logger.info("add_instance called")
-    
-    def dialog_confirm(self):
-        """Handle dialog confirmation."""
-        self.dialog.dismiss()
-        logger.info("Dialog confirmed, starting download")
 
-    def update_instances_panel(self):
-        """Stub for refreshing instance list from model."""
-        logger.info("update_instances_panel called")
-        # TODO: iterate over your instance store and update UI rows
+    def _on_cancel(self, *args):
+        self.dialog.dismiss()
+    def _on_confirm(self, *args):
+        logger.info("Dialog confirmed, starting download")
+        self.dialog.dismiss()
 
 
 class CaveStoryManager(GameManager):
@@ -100,10 +98,11 @@ class CaveStoryManager(GameManager):
         self.instances_panel = LauncherWidget()
         panel.content.add_widget(self.instances_panel)
 
-        # Clock.schedule_interval(self.update_instances_panel, 0.5) Update the instances panel after the UI is built
-
         return container
 
 def start_gui(ctx):
     ctx.ui = CaveStoryManager(ctx)
     ctx.ui_task = asyncio.create_task(ctx.ui.async_run(), name="UI")
+    import pkgutil
+    data = pkgutil.get_data(CaveStoryWorld.__module__, "CaveStoryClient/CaveStoryGui.kv").decode()
+    Builder.load_string(data)

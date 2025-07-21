@@ -51,9 +51,8 @@ class CaveStoryContext(CommonContext):
         self.sync_lock: asyncio.Lock = asyncio.Lock()
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
-        self.game_dir = Path(CaveStoryWorld.settings.game_dir).expanduser()
-        self.ignore_process = CaveStoryWorld.settings.ignore_process
         self.game_process = None
+        self.tweaked = False
         self.rcon_port = args.rcon_port
         self.seed_name = None
         self.slot_num = None
@@ -103,7 +102,7 @@ class CaveStoryContext(CommonContext):
 def game_running(ctx):
     if ctx.game_process and ctx.game_process.poll() is None:
         return True
-    elif ctx.ignore_process:
+    elif CaveStoryWorld.settings['ignore_process']:
         return True
     else:
         return False 
@@ -186,7 +185,7 @@ async def cr_connect(ctx):
                     data = json.loads(data_bytes.decode())
                     ctx.offsets = data['offsets']
                     logger.info(f"Connected to \'{data['platform']}\' game using API v{data['api_version']} with UUID {data['uuid']}")
-                    if needs_patch(ctx, False):
+                    if needs_patch(ctx, ctx.tweaked):
                         ctx.cs_streams = None
                         logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
                         while game_running(ctx):

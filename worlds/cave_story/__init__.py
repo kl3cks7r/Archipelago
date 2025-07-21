@@ -29,7 +29,7 @@ class CaveStorySettings(Group):
     class GameDir(FolderPath):
         description = "cave-story-randomizer Root Directory"
 
-    game_dir: GameDir = GameDir("C:\\ProgramData\\Archipelago\\CaveStoryInstances")
+    game_dir: GameDir = GameDir("cave-story-randomizer")
     ignore_process: bool = False
 
 class CaveStoryWeb(WebWorld):

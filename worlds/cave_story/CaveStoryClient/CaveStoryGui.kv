@@ -50,7 +50,7 @@
 
             MDLabel:
                 id: location_label
-                text: "Instances Folder:"
+                text: "Game Folder:"
                 size_hint: None, None
                 # size to fit one line of text exactly
                 size: self.texture_size
@@ -65,22 +65,24 @@
                 size_hint: 1, None
                 height: self.line_height + dp(4)   # adjust padding as needed
                 pos_hint: {"center_y": .5}
+                disabled: True
                 MDTextFieldHintText:
-                    text: "WIP: Please edit directory location in host.yaml"
+                    text: "Press folder to browse..."
+                
 
             MDIconButton:
-                icon: "folder"
+                icon: "folder-open"
                 on_release: root.browse_game_path()
                 size_hint: None, None
                 size: dp(48), dp(48)
                 pos_hint: {"center_y": .5}
 
-            MDIconButton:
-                icon: "folder-open"
-                on_release: root.reveal_game_path()
-                size_hint: None, None
-                size: dp(48), dp(48)
-                pos_hint: {"center_y": .5}
+            # MDIconButton:
+            #     icon: "folder-open"
+            #     on_release: root.reveal_game_path()
+            #     size_hint: None, None
+            #     size: dp(48), dp(48)
+            #     pos_hint: {"center_y": .5}
 
         MDDivider:
 
@@ -97,15 +99,15 @@
                     spacing: dp(8)
                     padding: dp(8)
                     InstanceCard:
-                        name: "host.yaml"
+                        name: "Cave Story Randomizer"
                         version: "v2.4.3"
                         tweaked: False
                 
-                MDButton:
-                    style: "elevated"
-                    on_release: root.add_instance()
-                    pos_hint: {"center_x": .5, "center_y": .5}
-                    MDButtonIcon:
-                        icon: "plus"
-                    MDButtonText:
-                        text: "New Instance"
+                # MDButton:
+                #     style: "elevated"
+                #     on_release: root.add_instance()
+                #     pos_hint: {"center_x": .5, "center_y": .5}
+                #     MDButtonIcon:
+                #         icon: "plus"
+                #     MDButtonText:
+                #         text: "New Instance"

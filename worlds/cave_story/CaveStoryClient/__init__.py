@@ -6,13 +6,14 @@ from enum import Enum
 from pathlib import Path
 import uuid
 
-from . import CaveStoryWorld
+from worlds.cave_story import CaveStoryWorld
 
-from .CaveStoryClient.Common import CSPacket, CSTrackerAutoTab, CSTrackerEvent
-from .CaveStoryClient.Constants import *
-from .CaveStoryClient.Patcher import *
-from .CaveStoryClient.Connector import *
-from .CaveStoryClient.Protocol import *
+from .Enums import CSPacket, CSTrackerAutoTab, CSTrackerEvent
+from .ClientGui import start_gui
+from .Constants import *
+from .Patcher import *
+from .Connector import *
+from .Protocol import *
 
 import Utils
 
@@ -36,21 +37,6 @@ class CaveStoryClientCommandProcessor(ClientCommandProcessor):
         """Force a sync to occur"""
         Utils.async_start(rcon_sync(self.ctx))
         return True
-    
-    def _cmd_cs_platform(self, platform) -> bool:
-        """Change the platform for Cave Story"""
-        if platform in ('freeware','tweaked'):
-            CaveStoryWorld.settings.game_platform = platform
-            self.ctx.game_platform = platform
-            if self.ctx.game_platform == 'freeware':
-                logger.info(f"Changed Cave Story platform to 'freeware'")
-                self.ctx.cs_button.text="Launch Cave Story Freeware"
-            elif self.ctx.game_platform == 'tweaked':
-                logger.info(f"Changed Cave Story platform to 'tweaked'")
-                self.ctx.cs_button.text="Launch Cave Story Tweaked"
-        else:
-            logger.info(f"Unknown platform, please input 'freeware' or 'tweaked'")
-            return False
         
 
 class CaveStoryContext(CommonContext):
@@ -66,7 +52,6 @@ class CaveStoryContext(CommonContext):
         self.locations_vec = [False] * LOCATIONS_NUM
         self.offsets = None
         self.game_dir = Path(CaveStoryWorld.settings.game_dir).expanduser()
-        self.game_platform = CaveStoryWorld.settings.game_platform
         self.ignore_process = CaveStoryWorld.settings.ignore_process
         self.game_process = None
         self.rcon_port = args.rcon_port
@@ -76,6 +61,7 @@ class CaveStoryContext(CommonContext):
         self.slot_data = None
         self.victory = False
         self.death = False
+        self.death_from_deathlink = False
         self.poptracker_curlevel: CSTrackerAutoTab = CSTrackerAutoTab.UNDEFINED
         self.poptracker_events = [False] * len(CSTrackerEvent)
         logger.debug(f'Running version {VERSION}')
@@ -98,28 +84,19 @@ class CaveStoryContext(CommonContext):
                 "locations": self.server_locations,
                 "create_as_hint": 0}
             ]))
+            if self.slot_data['deathlink']:
+                Utils.async_start(self.send_msgs([
+                    {"cmd": "ConnectUpdate",
+                     "tags": ["DeathLink"]}]))
         elif cmd == 'ReceivedItems':
-            if game_ready(self):
-                Utils.async_start(rcon_sync(self))
+            Utils.async_start(rcon_sync(self))
 
     def on_deathlink(self, data):
         super().on_deathlink(data)
-        Utils.async_start(send_packet(self, encode_packet(CSPacket.RUNTSC, '<HMC<SOU0017<TRA:0000:0042:0000:0000')))
-
+        self.death_from_deathlink = True
+        Utils.async_start(send_packet(self, encode_packet(CSPacket.RUNTSC, '<HMC<SOU0017<WAI0020<FAO0003<TRA0000:0042:0000:0000')))
     def run_gui(self):
-        from .CaveStoryClient.ClientGui import start_gui
         start_gui(self)
-        
-    def needs_patch(self) -> bool:
-        if self.slot_num and self.seed_name:
-            server_uuid = '{'+str(uuid.uuid3(BASE_UUID,self.seed_name+str(self.slot_num)))+'}'
-            try:
-                with open(self.game_dir.joinpath('pre_edited_cs', self.game_platform, 'data', 'uuid.txt')) as f:
-                    client_uuid = f.read()
-            except:
-                client_uuid = BASE_UUID
-            return client_uuid != server_uuid
-        return False
 
 
 
@@ -209,7 +186,7 @@ async def cr_connect(ctx):
                     data = json.loads(data_bytes.decode())
                     ctx.offsets = data['offsets']
                     logger.info(f"Connected to \'{data['platform']}\' game using API v{data['api_version']} with UUID {data['uuid']}")
-                    if ctx.needs_patch():
+                    if needs_patch(ctx, False):
                         ctx.cs_streams = None
                         logger.info("Current Cave Story session does not belong to the connected Archipelago server! Please restart Cave Story")
                         while game_running(ctx):
@@ -239,12 +216,13 @@ async def cr_sendables(ctx):
                     if b == 1 and not ctx.death:
                         logger.debug('Death detected from Client')
                         ctx.death = True
-                        if ctx.slot_data['deathlink']:
-                            Utils.async_start(ctx.send_death(ctx))
+                        if ctx.slot_data['deathlink'] and not ctx.death_from_deathlink:
+                            Utils.async_start(ctx.send_death(death_text=f"{ctx.player_names[ctx.slot_num]} fell prey to the Demon Crown!"))
                     elif b == 0 and ctx.death:
                         logger.debug('Reloaded, syncing')
-                        Utils.async_start(rcon_sync(ctx))
                         ctx.death = False
+                        ctx.death_from_deathlink = False
+                        Utils.async_start(rcon_sync(ctx))
                 elif b == 1 and not ctx.locations_vec[i]:
                     ctx.locations_vec[i] = True
                     if i == LOCATIONS_NUM - 1:

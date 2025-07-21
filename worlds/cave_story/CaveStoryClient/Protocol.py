@@ -3,7 +3,7 @@ import uuid
 
 from CommonClient import logger
 
-from .Common import *
+from .Enums import *
 from .Constants import *
 
 def encode_packet(pkt_type: CSPacket, data = None, addr: int = None):

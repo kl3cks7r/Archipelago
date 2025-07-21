@@ -1,0 +1,111 @@
+<InstanceCard@MDCard>:
+    size_hint_y: None
+    height: dp(80)
+    padding: dp(12)
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        spacing: dp(16)
+
+        MDBoxLayout:
+            orientation: "vertical"
+            spacing: dp(4)
+            MDLabel:
+                text: root.name
+            MDLabel:
+                text: root.version
+
+        MDBoxLayout:
+            size_hint_x: None
+            width: dp(100)
+            spacing: dp(4)
+            MDLabel:
+                text: "Tweaked? "
+                pos_hint: {"center_y": .5}
+            MDCheckbox:
+                active: root.tweaked
+                on_active: root.tweaked = self.active
+                pos_hint: {"center_y": .5}
+            
+
+        MDButton:
+            style: "tonal"
+            on_release: root.launch_instance()
+            pos_hint: {"center_y": .5}
+            MDButtonText:
+                text: "Launch"
+            
+
+<LauncherWidget>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(16)
+        spacing: dp(16)
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: dp(8)
+            size_hint_y: None
+            height: max(location_label.height, location_field.height)
+
+            MDLabel:
+                id: location_label
+                text: "Instances Folder:"
+                size_hint: None, None
+                # size to fit one line of text exactly
+                size: self.texture_size
+                text_size: None, None
+                max_lines: 1
+                pos_hint: {"center_y": .5}
+
+            MDTextField:
+                id: location_field
+                multiline: False
+                # size exactly to font + padding
+                size_hint: 1, None
+                height: self.line_height + dp(4)   # adjust padding as needed
+                pos_hint: {"center_y": .5}
+                MDTextFieldHintText:
+                    text: "WIP: Please edit directory location in host.yaml"
+
+            MDIconButton:
+                icon: "folder"
+                on_release: root.browse_game_path()
+                size_hint: None, None
+                size: dp(48), dp(48)
+                pos_hint: {"center_y": .5}
+
+            MDIconButton:
+                icon: "folder-open"
+                on_release: root.reveal_game_path()
+                size_hint: None, None
+                size: dp(48), dp(48)
+                pos_hint: {"center_y": .5}
+
+        MDDivider:
+
+        ScrollView:
+            MDBoxLayout:
+                orientation: "vertical"
+                adaptive_height: True
+                spacing: dp(16)
+                padding: dp(16)
+
+                MDBoxLayout:
+                    orientation: "vertical"
+                    adaptive_height: True
+                    spacing: dp(8)
+                    padding: dp(8)
+                    InstanceCard:
+                        name: "host.yaml"
+                        version: "v2.4.3"
+                        tweaked: False
+                
+                MDButton:
+                    style: "elevated"
+                    on_release: root.add_instance()
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    MDButtonIcon:
+                        icon: "plus"
+                    MDButtonText:
+                        text: "New Instance"

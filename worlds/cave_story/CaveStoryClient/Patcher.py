@@ -8,44 +8,7 @@ import struct
 import random
 from collections import defaultdict
 
-LOC_TSC_EVENTS = ( # Index is location ID, tuple is TSC Event 
-    ('Eggs','0403','0400'), ('Eggs','0404','0401'), ('Egg6','0201','0200'), ('EggR','0301','0300'),
-    ('Weed','0700','0200'), ('Weed','0701','0305'), ('Weed','0303','0302'), ('Weed','0800',''),
-    ('Weed','0801','0236'), ('Weed','0702',''), ('Santa','0501',''), ('Santa','0302',''),
-    ('Chako','0212',''), ('Malco','0350',''), ('WeedB','0301','0300'), ('WeedD','0305','0304'),
-    ('Frog','0300','0200'), ('MazeB','0502','0501'), ('MazeS','0202','0200'), ('Almond','0243','0240'),
-    ('Almond','1111',''), ('Pool','0412',''), ('MazeI','0301','0300'), ('MazeA','0502','0500'),
-    ('MazeA','0512','0510'), ('MazeA','0522','0520'), ('MazeO','0305',''), ('MazeO','0401','0400'),
-    ('MazeD','0201',''), ('Priso2','0300',''), ('Hell1','0401','0400'), ('Hell3','0400','0390'),
-    ('Cave','0401','0400'), ('Pole','0202','0200'), ('Pole','0303',''), ('Mimi','0202','0200'),
-    ('Plant','0401','0400'), ('Pool','0301','0300'), ('Comu','0303',''), ('Cemet','0301','0300'),
-    ('Cemet','0202',''), ('Mapi','0202','0200'), ('Mapi','0501',''), ('Pens1','0652',''),
-    ('Cent','0268','0265'), ('Cent','0324',''), ('Cent','0417','0415'), ('Cent','0501','0500'),
-    ('Cent','0452',''), ('Itoh','0405',''), ('Lounge','0204',''), ('Jail1','0301',''),
-    ('Momo','0201',''), ('Eggs2','0321','0320'), ('EggR2','0303',''), ('Little','0204',''),
-    ('Clock','0300','0200'), ('Sand','0502','0500'), ('Sand','0503','0501'), ('Sand','0423','0412'),
-    ('Sand','0422','0402'), ('Sand','0421','0401'), ('Curly','0518',''), ('CurlyS','0401','0400'),
-    ('CurlyS','0421','0420'), ('Jenka2','0221',''), ('Dark','0401','0400'), ('Gard','0602',''),
-)
-
-AP_SPRITE = [
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x0f, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x0f, 0x0f, 0x0f, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x0f, 0x0f, 0x0f, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x02, 0x02, 0x0b, 0x00, 0x0a, 0x0f, 0x0f, 0x0a, 0x0a, 0x00, 0x01, 0x01, 0x05, 0x00,
-        0x02, 0x02, 0x02, 0x02, 0x0b, 0x00, 0x0a, 0x0a, 0x0a, 0x00, 0x01, 0x01, 0x01, 0x01, 0x05,
-        0x02, 0x02, 0x02, 0x02, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x05,
-        0x0b, 0x02, 0x02, 0x0b, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x01, 0x01, 0x05, 0x05,
-        0x00, 0x0b, 0x0b, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x05, 0x05, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x10, 0x10, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x0d, 0x14, 0x00,
-        0x10, 0x10, 0x10, 0x10, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x0d, 0x0d, 0x0d, 0x14,
-        0x10, 0x10, 0x10, 0x10, 0x12, 0x00, 0x04, 0x04, 0x07, 0x00, 0x0d, 0x0d, 0x0d, 0x0d, 0x14,
-        0x12, 0x10, 0x10, 0x12, 0x12, 0x04, 0x04, 0x04, 0x04, 0x07, 0x14, 0x0d, 0x0d, 0x14, 0x14,
-        0x00, 0x12, 0x12, 0x12, 0x00, 0x04, 0x04, 0x04, 0x04, 0x07, 0x00, 0x14, 0x14, 0x14, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x04, 0x04, 0x07, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x07, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    ]
+from .Constants import LOC_TSC_EVENTS, AP_SPRITE
 
 class Tsc:
     def __init__(self, raw_tsc):
@@ -82,10 +45,10 @@ class Npc:
     def __repr__(self):
         return (f"Npc(({self.x}, {self.y}), F={self.flag_number}, E={self.event_number}, T={self.type}, A={self.attributes:04x})")
 
-def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logger):    
+def patch_files(locations, uuid, game_dir: Path, tweaked: bool, slot_data, logger):    
     logger.info("Copying base files...")
     base_dir = game_dir.joinpath('pre_edited_cs', "data")
-    dest_dir = game_dir.joinpath('pre_edited_cs', platform,"data")
+    dest_dir = game_dir.joinpath('pre_edited_cs', 'tweaked' if tweaked else 'freeware', "data")
     try:
         shutil.copytree(base_dir, dest_dir, dirs_exist_ok=True, ignore=(lambda _dir, files: [file for file in files if file[-3:] in ('txt')]))
     except shutil.Error:
@@ -98,7 +61,7 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
             for c in ('#','<','='):
                 player = player.replace(c, '?')
                 item = item.replace(c, '?')
-            if platform == 'freeware':
+            if not tweaked:
                 gfx = '<GIT1045'
             else:
                 gfx = ''
@@ -205,7 +168,7 @@ def patch_files(locations, uuid, game_dir: Path, platform: str, slot_data, logge
     tsc.vec[tsc.map['0042']][1] = '\r\n<FL+7777' + tsc.vec[tsc.map['0042']][1]
     encode_tsc(tsc_path,tsc.get_string())
     # AP sprite
-    if platform == 'freeware':
+    if not tweaked:
         patch_ap_sprite(dest_dir)
     # Hash and UUID
     logger.info("Copying hash and uuid...")

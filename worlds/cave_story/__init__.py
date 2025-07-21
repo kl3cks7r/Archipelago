@@ -2,7 +2,7 @@ from typing import Any, Mapping, ClassVar
 from BaseClasses import CollectionState, Region, Tutorial, Item
 from settings import Group, FolderPath
 from worlds.AutoWorld import WebWorld, World
-from worlds.LauncherComponents import Component, components, Type, launch_subprocess
+from worlds.LauncherComponents import Component, Type, components, icon_paths, launch_subprocess
 from .Options import CaveStoryOptions
 from .Items import CaveStoryItem, ALL_ITEMS, FILLER_ITEMS
 from .Locations import CaveStoryLocation, ALL_LOCATIONS
@@ -11,17 +11,25 @@ from .RegionsRules import REGIONS, RegionData, RuleData, trivial
 base_id = 0xD00_000
 
 def launch_client():
-    from .Client import launch
+    from .CaveStoryClient import launch
     launch_subprocess(launch, name="CaveStoryClient")
 
-components.append(Component("Cave Story Client", "CaveStoryClient", func=launch_client, component_type=Type.CLIENT))
+components.append(Component(
+    display_name="Cave Story Client",
+    script_name="CaveStoryClient",
+    func=launch_client,
+    component_type=Type.CLIENT,
+    description="Launches Cave Story and connects to a multiworld.",
+    icon="Cave Story",
+))
+
+icon_paths["Cave Story"] = f"ap:{__name__}/icon.png"
 
 class CaveStorySettings(Group):
     class GameDir(FolderPath):
         description = "cave-story-randomizer Root Directory"
 
-    game_dir: GameDir = GameDir("C:\\ProgramData\\Archipelago\\cave-story-randomizer-*")
-    game_platform: str = "freeware"
+    game_dir: GameDir = GameDir("C:\\ProgramData\\Archipelago\\CaveStoryInstances")
     ignore_process: bool = False
 
 class CaveStoryWeb(WebWorld):

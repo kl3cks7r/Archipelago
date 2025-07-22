@@ -19,11 +19,12 @@ from CommonClient import logger
 from .. import CaveStoryWorld
 
 from .Connector import *
+from .Patcher import patch_mychar
 
 class InstanceCard(MDCard):
     name = StringProperty()
     version = StringProperty()
-    char = StringProperty("Quote")
+    char = StringProperty("Select")
     tweaked = BooleanProperty(False)
 
     def launch_instance(self):
@@ -43,6 +44,8 @@ class InstanceCard(MDCard):
 
     def menu_callback(self, text_item):
         self.char = text_item
+        game_dir = Path(CaveStoryWorld.settings['game_dir']).expanduser()
+        patch_mychar(game_dir, self.char)
         logger.info(f"Character set to {self.char!r}")
 
 class LauncherWidget(MDBoxLayout):

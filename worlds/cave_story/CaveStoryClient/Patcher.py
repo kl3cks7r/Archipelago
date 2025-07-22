@@ -8,6 +8,8 @@ import struct
 import random
 from collections import defaultdict
 
+from .. import CaveStoryWorld
+
 from .Constants import LOC_TSC_EVENTS, AP_SPRITE
 
 class Tsc:
@@ -188,6 +190,14 @@ def patch_ap_sprite(path):
 
     with open(path.joinpath('ItemImage.bmp'), "wb") as f:
         f.write(file_data)
+
+def patch_mychar(game_dir: Path, char: str):
+    import pkgutil
+    char_data = pkgutil.get_data(CaveStoryWorld.__module__, f"assets/mychar/{char}.bmp")
+    char2x_data = pkgutil.get_data(CaveStoryWorld.__module__, f"assets/mychar/2x/{char}.bmp")
+    game_dir.joinpath('pre_edited_cs', 'freeware', 'data', 'MyChar.bmp').write_bytes(char_data)
+    game_dir.joinpath('pre_edited_cs', 'tweaked', 'data', 'MyChar.bmp').write_bytes(char_data)
+    game_dir.joinpath('pre_edited_cs', 'tweaked', 'data', 'sprites_up', 'MyChar.bmp').write_bytes(char2x_data)
 
 def decode_tsc(path):
     with open(path,'rb') as f:

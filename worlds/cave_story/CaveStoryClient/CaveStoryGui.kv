@@ -16,16 +16,31 @@
                 text: root.version
 
         MDBoxLayout:
+            orientation: "vertical"
             size_hint_x: None
-            width: dp(100)
             spacing: dp(4)
             MDLabel:
-                text: "Tweaked? "
-                pos_hint: {"center_y": .5}
+                text: "Character:"
+                pos_hint: {"center_x": .5, "center_y": .5}
+            MDDropDownItem:
+                pos_hint: {"center_x": .35, "center_y": .5}
+                on_release: root.open_menu(self)
+
+                MDDropDownItemText:
+                    id: drop_text
+                    text: root.char
+
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint_x: None
+            spacing: dp(4)
+            MDLabel:
+                text: "Tweaked?"
+                pos_hint: {"center_x": .5, "center_y": .5}
             MDCheckbox:
                 active: root.tweaked
                 on_active: root.tweaked = self.active
-                pos_hint: {"center_y": .5}
+                pos_hint: {"center_x": .35, "center_y": .5}
             
 
         MDButton:
@@ -67,7 +82,7 @@
                 pos_hint: {"center_y": .5}
                 disabled: True
                 MDTextFieldHintText:
-                    text: "Press folder to browse..."
+                    text: "Press folder to browse. For persistence, edit host.yaml"
                 
 
             MDIconButton:

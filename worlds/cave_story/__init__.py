@@ -23,7 +23,7 @@ components.append(Component(
     icon="Cave Story",
 ))
 
-icon_paths["Cave Story"] = f"ap:{__name__}/icon.png"
+icon_paths["Cave Story"] = f"ap:{__name__}/assets/icon.png"
 
 class CaveStorySettings(Group):
     class GameDir(FolderPath):

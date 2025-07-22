@@ -23,13 +23,27 @@ from .Connector import *
 class InstanceCard(MDCard):
     name = StringProperty()
     version = StringProperty()
+    char = StringProperty("Quote")
     tweaked = BooleanProperty(False)
 
     def launch_instance(self):
         ctx = App.get_running_app().ctx
         ctx.tweaked = self.tweaked
         logger.info(f"Launching {self.name!r} (tweaked={self.tweaked})")
-        launch_game(ctx, tweaked=self.tweaked) # FIXME: find a way to pass ctx to this widget
+        launch_game(ctx, tweaked=self.tweaked)
+    
+    def open_menu(self, item):
+        menu_items = [
+            {
+                "text": char,
+                "on_release": lambda x=char: self.menu_callback(x),
+            } for char in CS_MYCHAR
+        ]
+        MDDropdownMenu(caller=item, items=menu_items).open()
+
+    def menu_callback(self, text_item):
+        self.char = text_item
+        logger.info(f"Character set to {self.char!r}")
 
 class LauncherWidget(MDBoxLayout):
     dialog = ObjectProperty(MDDialog)

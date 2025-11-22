@@ -1,0 +1,3 @@
+[submodule "worlds/cave_story"]
+	path = worlds/cave_story
+	url = https://github.com/kl3cks7r/CaveStoryArchipelago
